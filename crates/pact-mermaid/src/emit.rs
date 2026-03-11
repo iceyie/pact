@@ -108,9 +108,7 @@ fn emit_flow_edges(body: &[pact_core::ast::expr::Expr], edges: &mut Vec<String>)
             ExprKind::Assign { value, .. } => {
                 extract_dispatch_edge(value, edges);
             }
-            ExprKind::AgentDispatch {
-                agent, tool, ..
-            } => {
+            ExprKind::AgentDispatch { agent, tool, .. } => {
                 if let (ExprKind::AgentRef(agent_name), ExprKind::ToolRef(tool_name)) =
                     (&agent.kind, &tool.kind)
                 {

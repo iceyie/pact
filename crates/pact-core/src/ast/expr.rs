@@ -130,10 +130,7 @@ pub enum ExprKind {
     Env(String),
 
     /// Flow call: `run flow_name(arg1, arg2)`.
-    RunFlow {
-        flow_name: String,
-        args: Vec<Expr>,
-    },
+    RunFlow { flow_name: String, args: Vec<Expr> },
 }
 
 /// A single arm in a `match` expression.

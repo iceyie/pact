@@ -163,9 +163,7 @@ fn handle_list(args: &Value) -> Result<String, String> {
                     .tools
                     .iter()
                     .filter_map(|e| match &e.kind {
-                        pact_core::ast::expr::ExprKind::ToolRef(name) => {
-                            Some(format!("#{name}"))
-                        }
+                        pact_core::ast::expr::ExprKind::ToolRef(name) => Some(format!("#{name}")),
                         _ => None,
                     })
                     .collect();
@@ -191,9 +189,7 @@ fn handle_list(args: &Value) -> Result<String, String> {
                     .agents
                     .iter()
                     .filter_map(|e| match &e.kind {
-                        pact_core::ast::expr::ExprKind::AgentRef(name) => {
-                            Some(format!("@{name}"))
-                        }
+                        pact_core::ast::expr::ExprKind::AgentRef(name) => Some(format!("@{name}")),
                         _ => None,
                     })
                     .collect();
@@ -213,8 +209,7 @@ fn handle_list(args: &Value) -> Result<String, String> {
                 lines.push(format!("flow {}({}){}", f.name, params.join(", "), ret));
             }
             DeclKind::Schema(s) => {
-                let fields: Vec<String> =
-                    s.fields.iter().map(|f| f.name.clone()).collect();
+                let fields: Vec<String> = s.fields.iter().map(|f| f.name.clone()).collect();
                 lines.push(format!(
                     "schema {} — fields: [{}]",
                     s.name,
@@ -222,11 +217,7 @@ fn handle_list(args: &Value) -> Result<String, String> {
                 ));
             }
             DeclKind::TypeAlias(t) => {
-                lines.push(format!(
-                    "type {} = {}",
-                    t.name,
-                    t.variants.join(" | ")
-                ));
+                lines.push(format!("type {} = {}", t.name, t.variants.join(" | ")));
             }
             DeclKind::PermitTree(pt) => {
                 let top_level: Vec<String> = pt
@@ -411,7 +402,9 @@ fn handle_scaffold(args: &Value) -> Result<String, String> {
         }
         let requires: Vec<String> = tool_perms.iter().map(|p| format!("^{p}")).collect();
         output.push_str(&format!("tool #{tool_name} {{\n"));
-        output.push_str(&format!("    description: <<Tool description for {tool_name}>>\n"));
+        output.push_str(&format!(
+            "    description: <<Tool description for {tool_name}>>\n"
+        ));
         output.push_str(&format!("    requires: [{}]\n", requires.join(", ")));
         output.push_str("    params {}\n");
         output.push_str("}\n\n");
@@ -539,9 +532,15 @@ mod tests {
             "#
         });
         let result = handle_tool_call("pact_list", &args).unwrap();
-        assert!(result.contains("agent @greeter"), "missing agent, got: {result}");
+        assert!(
+            result.contains("agent @greeter"),
+            "missing agent, got: {result}"
+        );
         assert!(result.contains("flow hello"), "missing flow, got: {result}");
-        assert!(result.contains("schema Report"), "missing schema, got: {result}");
+        assert!(
+            result.contains("schema Report"),
+            "missing schema, got: {result}"
+        );
     }
 
     #[test]

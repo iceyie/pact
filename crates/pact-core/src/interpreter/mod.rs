@@ -459,21 +459,18 @@ impl Interpreter {
 
             ExprKind::TemplateRef(name) => Ok(Value::String(format!("%{}", name))),
 
-            ExprKind::Env(key) => {
-                match std::env::var(key) {
-                    Ok(val) => Ok(Value::String(val)),
-                    Err(_) => Err(Signal::Fail(
-                        format!("environment variable '{}' not set", key),
-                    )),
-                }
-            }
+            ExprKind::Env(key) => match std::env::var(key) {
+                Ok(val) => Ok(Value::String(val)),
+                Err(_) => Err(Signal::Fail(format!(
+                    "environment variable '{}' not set",
+                    key
+                ))),
+            },
 
-            ExprKind::OnError { body, fallback } => {
-                match self.eval_with_signal(body) {
-                    Ok(val) => Ok(val),
-                    Err(_) => self.eval_with_signal(fallback),
-                }
-            }
+            ExprKind::OnError { body, fallback } => match self.eval_with_signal(body) {
+                Ok(val) => Ok(val),
+                Err(_) => self.eval_with_signal(fallback),
+            },
 
             ExprKind::RunFlow { flow_name, args } => {
                 let mut evaluated_args = Vec::new();
@@ -715,10 +712,7 @@ mod tests {
             }
         "#;
         let result = run_flow(src, "greet", vec![Value::String("Alice".to_string())]).unwrap();
-        assert_eq!(
-            result,
-            Value::String("Hello Alice, welcome!".to_string())
-        );
+        assert_eq!(result, Value::String("Hello Alice, welcome!".to_string()));
     }
 
     #[test]
@@ -730,10 +724,7 @@ mod tests {
             }
         "#;
         let result = run_flow(src, "test_prompt", vec![]).unwrap();
-        assert_eq!(
-            result,
-            Value::String("Hello {unknown}".to_string())
-        );
+        assert_eq!(result, Value::String("Hello {unknown}".to_string()));
     }
 
     #[test]
@@ -853,8 +844,7 @@ mod tests {
                 return result
             }
         "#;
-        let result =
-            run_flow(src, "type_check", vec![Value::String("hello".into())]).unwrap();
+        let result = run_flow(src, "type_check", vec![Value::String("hello".into())]).unwrap();
         assert_eq!(result, Value::String("is_string".into()));
     }
 

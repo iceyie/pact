@@ -49,11 +49,11 @@ pub fn parse_handler(spec: &str) -> Result<HandlerSpec, DispatchError> {
 
     if let Some(rest) = spec.strip_prefix("http ") {
         let rest = rest.trim();
-        let (method, url) = rest
-            .split_once(' ')
-            .ok_or_else(|| DispatchError::ExecutionError(
+        let (method, url) = rest.split_once(' ').ok_or_else(|| {
+            DispatchError::ExecutionError(
                 "http handler requires METHOD and URL (e.g. 'http GET https://...')".to_string(),
-            ))?;
+            )
+        })?;
         return Ok(HandlerSpec::Http {
             method: method.to_uppercase(),
             url: url.trim().to_string(),
@@ -120,18 +120,27 @@ async fn execute_http(
         "POST" => {
             let body = serde_json::to_string(params)
                 .map_err(|e| DispatchError::ExecutionError(e.to_string()))?;
-            client.post(&url).header("Content-Type", "application/json").body(body)
+            client
+                .post(&url)
+                .header("Content-Type", "application/json")
+                .body(body)
         }
         "PUT" => {
             let body = serde_json::to_string(params)
                 .map_err(|e| DispatchError::ExecutionError(e.to_string()))?;
-            client.put(&url).header("Content-Type", "application/json").body(body)
+            client
+                .put(&url)
+                .header("Content-Type", "application/json")
+                .body(body)
         }
         "DELETE" => client.delete(&url),
         "PATCH" => {
             let body = serde_json::to_string(params)
                 .map_err(|e| DispatchError::ExecutionError(e.to_string()))?;
-            client.patch(&url).header("Content-Type", "application/json").body(body)
+            client
+                .patch(&url)
+                .header("Content-Type", "application/json")
+                .body(body)
         }
         _ => {
             return Err(DispatchError::ExecutionError(format!(
@@ -157,7 +166,10 @@ async fn execute_http(
         )));
     }
 
-    println!("[EXECUTOR] HTTP {method} => {status} ({} bytes)", body.len());
+    println!(
+        "[EXECUTOR] HTTP {method} => {status} ({} bytes)",
+        body.len()
+    );
     Ok(body)
 }
 
@@ -175,7 +187,9 @@ async fn execute_shell(
         .arg(&command)
         .output()
         .await
-        .map_err(|e| DispatchError::ExecutionError(format!("failed to execute shell command: {e}")))?;
+        .map_err(|e| {
+            DispatchError::ExecutionError(format!("failed to execute shell command: {e}"))
+        })?;
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
@@ -196,25 +210,20 @@ async fn execute_shell(
 }
 
 /// Execute a built-in handler.
-fn execute_builtin(
-    name: &str,
-    params: &HashMap<String, String>,
-) -> Result<String, DispatchError> {
+fn execute_builtin(name: &str, params: &HashMap<String, String>) -> Result<String, DispatchError> {
     println!("[EXECUTOR] BUILTIN: {name}");
 
     match name {
         "echo" => {
-            let message = params.get("message").or_else(|| params.get("text"))
+            let message = params
+                .get("message")
+                .or_else(|| params.get("text"))
                 .cloned()
-                .unwrap_or_else(|| {
-                    serde_json::to_string(params).unwrap_or_default()
-                });
+                .unwrap_or_else(|| serde_json::to_string(params).unwrap_or_default());
             Ok(message)
         }
-        "json" => {
-            serde_json::to_string_pretty(params)
-                .map_err(|e| DispatchError::ExecutionError(e.to_string()))
-        }
+        "json" => serde_json::to_string_pretty(params)
+            .map_err(|e| DispatchError::ExecutionError(e.to_string())),
         "noop" => Ok("ok".to_string()),
         _ => Err(DispatchError::ExecutionError(format!(
             "unknown builtin handler: '{name}'"

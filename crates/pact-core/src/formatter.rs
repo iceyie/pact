@@ -223,7 +223,11 @@ impl Formatter {
             if source.args.is_empty() {
                 self.push(&format!("source: ^{}\n", source.capability));
             } else {
-                self.push(&format!("source: ^{}({})\n", source.capability, source.args.join(", ")));
+                self.push(&format!(
+                    "source: ^{}({})\n",
+                    source.capability,
+                    source.args.join(", ")
+                ));
             }
         }
 
@@ -481,7 +485,11 @@ impl Formatter {
         self.indent();
         for entry in &d.entries {
             match entry {
-                TemplateEntry::Field { name, ty, description } => {
+                TemplateEntry::Field {
+                    name,
+                    ty,
+                    description,
+                } => {
                     self.push_indent();
                     self.push(&format!("{} :: ", name));
                     self.write_type(ty);
@@ -490,7 +498,12 @@ impl Formatter {
                     }
                     self.newline();
                 }
-                TemplateEntry::Repeat { name, ty, count, description } => {
+                TemplateEntry::Repeat {
+                    name,
+                    ty,
+                    count,
+                    description,
+                } => {
                     self.push_indent();
                     self.push(&format!("{} :: ", name));
                     self.write_type(ty);

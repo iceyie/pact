@@ -231,7 +231,11 @@ fn render_tool(out: &mut String, tool: &ToolDecl) {
         if source.args.is_empty() {
             out.push_str(&format!("**Source:** `^{}`\n\n", source.capability));
         } else {
-            out.push_str(&format!("**Source:** `^{}({})`\n\n", source.capability, source.args.join(", ")));
+            out.push_str(&format!(
+                "**Source:** `^{}({})`\n\n",
+                source.capability,
+                source.args.join(", ")
+            ));
         }
     }
 
@@ -253,7 +257,11 @@ fn render_tool(out: &mut String, tool: &ToolDecl) {
 
     // Directives
     if !tool.directives.is_empty() {
-        let refs: Vec<String> = tool.directives.iter().map(|n| format!("`%{}`", n)).collect();
+        let refs: Vec<String> = tool
+            .directives
+            .iter()
+            .map(|n| format!("`%{}`", n))
+            .collect();
         out.push_str(&format!("**Directives:** {}\n\n", refs.join(", ")));
     }
 
@@ -297,7 +305,10 @@ fn render_directive_doc(out: &mut String, directive: &DirectiveDecl) {
                 ExprKind::BoolLit(b) => b.to_string(),
                 _ => "_expr_".to_string(),
             };
-            out.push_str(&format!("| `{}` | `{}` | {} |\n", p.name, ty_str, default_str));
+            out.push_str(&format!(
+                "| `{}` | `{}` | {} |\n",
+                p.name, ty_str, default_str
+            ));
         }
         out.push('\n');
     }
@@ -355,7 +366,10 @@ fn render_flow(out: &mut String, flow: &FlowDecl) {
         None => String::new(),
     };
     out.push_str(&format!("### `{}`\n\n", flow.name));
-    out.push_str(&format!("**Signature:** `{}({})`{}\n\n", flow.name, params_str, ret_str));
+    out.push_str(&format!(
+        "**Signature:** `{}({})`{}\n\n",
+        flow.name, params_str, ret_str
+    ));
 
     // Parameters
     if !flow.params.is_empty() {
@@ -384,15 +398,32 @@ fn render_template(out: &mut String, template: &TemplateDecl) {
     out.push_str("|-------|------|-------------|\n");
     for entry in &template.entries {
         match entry {
-            TemplateEntry::Field { name, ty, description } => {
+            TemplateEntry::Field {
+                name,
+                ty,
+                description,
+            } => {
                 let desc = description.as_deref().unwrap_or("");
-                out.push_str(&format!("| `{}` | `{}` | {} |\n", name, format_type(ty), desc));
+                out.push_str(&format!(
+                    "| `{}` | `{}` | {} |\n",
+                    name,
+                    format_type(ty),
+                    desc
+                ));
             }
-            TemplateEntry::Repeat { name, ty, count, description } => {
+            TemplateEntry::Repeat {
+                name,
+                ty,
+                count,
+                description,
+            } => {
                 let desc = description.as_deref().unwrap_or("");
                 out.push_str(&format!(
                     "| `{}` ({}) | `{}` | {} |\n",
-                    name, count, format_type(ty), desc
+                    name,
+                    count,
+                    format_type(ty),
+                    desc
                 ));
             }
             TemplateEntry::Section { name, description } => {
@@ -570,7 +601,12 @@ fn describe_expr(expr: &crate::ast::expr::Expr) -> String {
                 crate::ast::BinOpKind::LtEq => "<=",
                 crate::ast::BinOpKind::GtEq => ">=",
             };
-            format!("{} {} {}", describe_expr(left), op_str, describe_expr(right))
+            format!(
+                "{} {} {}",
+                describe_expr(left),
+                op_str,
+                describe_expr(right)
+            )
         }
         ExprKind::FieldAccess { object, field } => {
             format!("{}.{}", describe_expr(object), field)
@@ -585,7 +621,11 @@ fn describe_expr(expr: &crate::ast::expr::Expr) -> String {
             format!("{} :: {}", describe_expr(expr), format_type(ty))
         }
         ExprKind::OnError { body, fallback } => {
-            format!("{} on_error {}", describe_expr(body), describe_expr(fallback))
+            format!(
+                "{} on_error {}",
+                describe_expr(body),
+                describe_expr(fallback)
+            )
         }
         ExprKind::Env(key) => format!("env(\"{}\")", key),
         ExprKind::RunFlow { flow_name, args } => {

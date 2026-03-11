@@ -44,7 +44,10 @@ pub fn json_to_value(json: &JsonValue) -> Value {
         JsonValue::Bool(b) => Value::Bool(*b),
         JsonValue::Array(items) => Value::List(items.iter().map(json_to_value).collect()),
         JsonValue::Object(map) => {
-            let fields = map.iter().map(|(k, v)| (k.clone(), json_to_value(v))).collect();
+            let fields = map
+                .iter()
+                .map(|(k, v)| (k.clone(), json_to_value(v)))
+                .collect();
             Value::Record(fields)
         }
         JsonValue::Null => Value::Null,

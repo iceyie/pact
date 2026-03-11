@@ -91,7 +91,10 @@ impl ToolUseLoop {
 
             println!(
                 "[DISPATCH @{}] stop_reason: {:?}, tokens: {}+{}",
-                agent.name, response.stop_reason, response.usage.input_tokens, response.usage.output_tokens
+                agent.name,
+                response.stop_reason,
+                response.usage.input_tokens,
+                response.usage.output_tokens
             );
 
             match response.stop_reason {
@@ -479,9 +482,7 @@ mod tests {
         // Output has the field
         assert!(validate_output_against_template("TITLE: My Report", "report", &program).is_ok());
         // Output missing the field
-        assert!(
-            validate_output_against_template("No title here", "report", &program).is_err()
-        );
+        assert!(validate_output_against_template("No title here", "report", &program).is_err());
     }
 
     #[test]
@@ -503,12 +504,9 @@ mod tests {
             }],
         };
         assert!(
-            validate_output_against_template("===ENGLISH===\nHello", "bilingual", &program)
-                .is_ok()
+            validate_output_against_template("===ENGLISH===\nHello", "bilingual", &program).is_ok()
         );
-        assert!(
-            validate_output_against_template("No section", "bilingual", &program).is_err()
-        );
+        assert!(validate_output_against_template("No section", "bilingual", &program).is_err());
     }
 
     #[test]
@@ -536,11 +534,8 @@ mod tests {
             }],
         };
         assert!(
-            validate_output_against_template("ITEM_1: A\nITEM_2: B", "items", &program)
-                .is_ok()
+            validate_output_against_template("ITEM_1: A\nITEM_2: B", "items", &program).is_ok()
         );
-        assert!(
-            validate_output_against_template("ITEM_1: A", "items", &program).is_err()
-        );
+        assert!(validate_output_against_template("ITEM_1: A", "items", &program).is_err());
     }
 }

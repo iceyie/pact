@@ -111,8 +111,8 @@ impl ClaudeDispatcher {
     /// Create a dispatcher from the `ANTHROPIC_API_KEY` environment variable.
     pub fn from_env() -> Result<Self, DispatchError> {
         let client = AnthropicClient::from_env()?;
-        let runtime = tokio::runtime::Runtime::new()
-            .map_err(|e| DispatchError::HttpError(e.to_string()))?;
+        let runtime =
+            tokio::runtime::Runtime::new().map_err(|e| DispatchError::HttpError(e.to_string()))?;
         Ok(Self {
             tool_loop: ToolUseLoop::new(client),
             runtime,
@@ -121,8 +121,8 @@ impl ClaudeDispatcher {
 
     /// Create a dispatcher with a custom client.
     pub fn with_client(client: AnthropicClient) -> Result<Self, DispatchError> {
-        let runtime = tokio::runtime::Runtime::new()
-            .map_err(|e| DispatchError::HttpError(e.to_string()))?;
+        let runtime =
+            tokio::runtime::Runtime::new().map_err(|e| DispatchError::HttpError(e.to_string()))?;
         Ok(Self {
             tool_loop: ToolUseLoop::new(client),
             runtime,

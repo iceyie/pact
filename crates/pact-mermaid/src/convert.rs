@@ -64,10 +64,7 @@ pub fn graph_to_pact(graph: &MermaidGraph) -> String {
     for tool in &tools {
         let name = to_snake_case(&tool.label);
         out.push_str(&format!("tool #{} {{\n", name));
-        out.push_str(&format!(
-            "    description: <<{}>>\n",
-            tool.label
-        ));
+        out.push_str(&format!("    description: <<{}>>\n", tool.label));
         out.push_str("    requires: [^llm.query]\n");
         out.push_str("    params {\n");
         out.push_str("        input :: String\n");
@@ -101,10 +98,7 @@ pub fn graph_to_pact(graph: &MermaidGraph) -> String {
         out.push_str(&format!("agent @{} {{\n", name));
         out.push_str("    permits: [^llm.query]\n");
         if !connected_tools.is_empty() {
-            out.push_str(&format!(
-                "    tools: [#{}]\n",
-                connected_tools.join(", #")
-            ));
+            out.push_str(&format!("    tools: [#{}]\n", connected_tools.join(", #")));
         }
         out.push_str(&format!(
             "    prompt: <<You are a {} agent.>>\n",
@@ -128,10 +122,7 @@ pub fn graph_to_pact(graph: &MermaidGraph) -> String {
 
         if !member_agents.is_empty() {
             out.push_str(&format!("agent_bundle @{} {{\n", name));
-            out.push_str(&format!(
-                "    agents: [@{}]\n",
-                member_agents.join(", @")
-            ));
+            out.push_str(&format!("    agents: [@{}]\n", member_agents.join(", @")));
             out.push_str("}\n\n");
         }
     }
@@ -193,10 +184,7 @@ pub fn graph_to_pact(graph: &MermaidGraph) -> String {
                     } else {
                         "input".to_string()
                     };
-                    out.push_str(&format!(
-                        "    {} = {}({})\n",
-                        step_var, edge.to, input
-                    ));
+                    out.push_str(&format!("    {} = {}({})\n", step_var, edge.to, input));
                 }
             }
         }

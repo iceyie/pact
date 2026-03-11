@@ -71,18 +71,16 @@ impl OllamaDispatcher {
     /// Reads `OLLAMA_URL` (default `http://localhost:11434`) and
     /// `OLLAMA_MODEL` (default `llama3`).
     pub fn from_env() -> Result<Self, DispatchError> {
-        let base_url =
-            std::env::var("OLLAMA_URL").unwrap_or_else(|_| DEFAULT_BASE_URL.to_string());
-        let model =
-            std::env::var("OLLAMA_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.to_string());
+        let base_url = std::env::var("OLLAMA_URL").unwrap_or_else(|_| DEFAULT_BASE_URL.to_string());
+        let model = std::env::var("OLLAMA_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.to_string());
         Self::new(base_url, model)
     }
 
     /// Create a dispatcher with an explicit base URL and model.
     pub fn new(base_url: String, model: String) -> Result<Self, DispatchError> {
         let client = Client::new();
-        let runtime = tokio::runtime::Runtime::new()
-            .map_err(|e| DispatchError::HttpError(e.to_string()))?;
+        let runtime =
+            tokio::runtime::Runtime::new().map_err(|e| DispatchError::HttpError(e.to_string()))?;
         Ok(Self {
             base_url,
             model,
@@ -220,11 +218,8 @@ mod tests {
 
     #[test]
     fn build_prompt_formats_correctly() {
-        let prompt = OllamaDispatcher::build_prompt(
-            "greeter",
-            "greet",
-            &[Value::String("world".into())],
-        );
+        let prompt =
+            OllamaDispatcher::build_prompt("greeter", "greet", &[Value::String("world".into())]);
         assert!(prompt.contains("@greeter"));
         assert!(prompt.contains("#greet"));
         assert!(prompt.contains("world"));
@@ -232,11 +227,7 @@ mod tests {
 
     #[test]
     fn build_prompt_multiple_args() {
-        let prompt = OllamaDispatcher::build_prompt(
-            "math",
-            "add",
-            &[Value::Int(2), Value::Int(3)],
-        );
+        let prompt = OllamaDispatcher::build_prompt("math", "add", &[Value::Int(2), Value::Int(3)]);
         assert!(prompt.contains("@math"));
         assert!(prompt.contains("#add"));
         assert!(prompt.contains("2"));
@@ -275,8 +266,7 @@ mod tests {
 
     #[test]
     fn new_creates_dispatcher() {
-        let dispatcher =
-            OllamaDispatcher::new("http://localhost:11434".into(), "llama3".into());
+        let dispatcher = OllamaDispatcher::new("http://localhost:11434".into(), "llama3".into());
         assert!(dispatcher.is_ok());
         let d = dispatcher.unwrap();
         assert_eq!(d.model, "llama3");

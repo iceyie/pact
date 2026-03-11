@@ -74,7 +74,10 @@ pub fn tool_to_claude_with_program(tool: &ToolDecl, program: Option<&Program>) -
 
     if let Some(source) = &tool.source {
         if source.args.is_empty() {
-            description.push_str(&format!("\n\n[Backed by built-in provider: ^{}]", source.capability));
+            description.push_str(&format!(
+                "\n\n[Backed by built-in provider: ^{}]",
+                source.capability
+            ));
         } else {
             description.push_str(&format!(
                 "\n\n[Backed by built-in provider: ^{}({})]",
@@ -204,7 +207,9 @@ pub fn build_agent_request(
         .decls
         .iter()
         .filter_map(|d| match &d.kind {
-            DeclKind::Tool(t) if tool_names.contains(&t.name.as_str()) => Some(tool_to_claude_with_program(t, Some(program))),
+            DeclKind::Tool(t) if tool_names.contains(&t.name.as_str()) => {
+                Some(tool_to_claude_with_program(t, Some(program)))
+            }
             _ => None,
         })
         .collect();

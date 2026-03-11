@@ -100,7 +100,9 @@ pub enum CheckError {
     },
 
     #[error("tool '#{tool}' source arg '{arg}' does not match any declared parameter")]
-    #[diagnostic(help("source args should reference parameters declared in the tool's params block"))]
+    #[diagnostic(help(
+        "source args should reference parameters declared in the tool's params block"
+    ))]
     SourceArgNotAParam {
         tool: String,
         arg: String,
@@ -344,8 +346,7 @@ impl Checker {
                     }
                 }
                 DeclKind::Directive(d) => {
-                    let params: Vec<String> =
-                        d.params.iter().map(|p| p.name.clone()).collect();
+                    let params: Vec<String> = d.params.iter().map(|p| p.name.clone()).collect();
                     if !self
                         .symbols
                         .define(d.name.clone(), SymbolKind::Directive { params })
@@ -465,7 +466,10 @@ impl Checker {
                     if let Some(validate) = &t.validate {
                         if validate != "strict" && validate != "lenient" {
                             self.errors.push(CheckError::UnknownType {
-                                name: format!("invalid validation mode '{}' (expected 'strict' or 'lenient')", validate),
+                                name: format!(
+                                    "invalid validation mode '{}' (expected 'strict' or 'lenient')",
+                                    validate
+                                ),
                                 span: (decl.span.start..decl.span.end).into(),
                             });
                         }

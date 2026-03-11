@@ -36,14 +36,21 @@ pub fn render_template(template: &TemplateDecl) -> String {
 
     for entry in &template.entries {
         match entry {
-            TemplateEntry::Field { name, description, .. } => {
+            TemplateEntry::Field {
+                name, description, ..
+            } => {
                 if let Some(desc) = description {
                     out.push_str(&format!("{}: ({})\n", name, desc.trim()));
                 } else {
                     out.push_str(&format!("{}:\n", name));
                 }
             }
-            TemplateEntry::Repeat { name, count, description, .. } => {
+            TemplateEntry::Repeat {
+                name,
+                count,
+                description,
+                ..
+            } => {
                 for i in 1..=*count {
                     if let Some(desc) = description {
                         out.push_str(&format!("{}_{}: ({})\n", name, i, desc.trim()));
@@ -155,14 +162,12 @@ mod tests {
     fn render_repeat_expands() {
         let template = TemplateDecl {
             name: "test".into(),
-            entries: vec![
-                TemplateEntry::Repeat {
-                    name: "ITEM".into(),
-                    ty: string_type(),
-                    count: 3,
-                    description: Some("Name | Price".into()),
-                },
-            ],
+            entries: vec![TemplateEntry::Repeat {
+                name: "ITEM".into(),
+                ty: string_type(),
+                count: 3,
+                description: Some("Name | Price".into()),
+            }],
         };
         let rendered = render_template(&template);
         assert!(rendered.contains("ITEM_1: (Name | Price)"));
@@ -221,13 +226,11 @@ mod tests {
     fn render_field_no_description() {
         let template = TemplateDecl {
             name: "test".into(),
-            entries: vec![
-                TemplateEntry::Field {
-                    name: "CONTENT".into(),
-                    ty: string_type(),
-                    description: None,
-                },
-            ],
+            entries: vec![TemplateEntry::Field {
+                name: "CONTENT".into(),
+                ty: string_type(),
+                description: None,
+            }],
         };
         let rendered = render_template(&template);
         assert!(rendered.contains("CONTENT:"));
@@ -274,7 +277,10 @@ mod tests {
             ],
         };
         let rendered = render_directive(&directive);
-        assert_eq!(rendered, "Use Playfair Display for headings and warm palette.");
+        assert_eq!(
+            rendered,
+            "Use Playfair Display for headings and warm palette."
+        );
     }
 
     #[test]

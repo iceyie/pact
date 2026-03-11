@@ -410,7 +410,9 @@ impl<'t> Parser<'t> {
             }
 
             // Identifier (check for `env(...)` builtin first)
-            TokenKind::Ident(name) if name == "env" && self.peek_next_kind() == &TokenKind::LParen => {
+            TokenKind::Ident(name)
+                if name == "env" && self.peek_next_kind() == &TokenKind::LParen =>
+            {
                 self.advance(); // consume `env`
                 self.advance(); // consume `(`
                 let key = match self.peek_kind().clone() {
@@ -464,9 +466,8 @@ impl<'t> Parser<'t> {
                     self.expect(&TokenKind::Colon)?;
                     let value = self.parse_expr()?;
                     fields.push((field_name, value));
-                    if !self.check(&TokenKind::RBrace)
-                        && !self.eat(&TokenKind::Comma) {
-                            break;
+                    if !self.check(&TokenKind::RBrace) && !self.eat(&TokenKind::Comma) {
+                        break;
                     }
                 }
                 self.expect(&TokenKind::RBrace)?;

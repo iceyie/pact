@@ -9,7 +9,9 @@
 //! consumed directly as a system prompt by LLM APIs.
 
 use pact_core::ast::expr::ExprKind;
-use pact_core::ast::stmt::{AgentDecl, DeclKind, DirectiveDecl, Program, SkillDecl, TemplateDecl, ToolDecl};
+use pact_core::ast::stmt::{
+    AgentDecl, DeclKind, DirectiveDecl, Program, SkillDecl, TemplateDecl, ToolDecl,
+};
 use pact_core::template::render_template;
 
 use crate::guardrails;

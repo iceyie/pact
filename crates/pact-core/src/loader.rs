@@ -38,20 +38,11 @@ use crate::span::SourceMap;
 #[derive(Debug, Clone)]
 pub enum LoadError {
     /// An I/O error occurred while reading a file.
-    Io {
-        path: PathBuf,
-        message: String,
-    },
+    Io { path: PathBuf, message: String },
     /// A lexer error occurred in the specified file.
-    Lex {
-        path: PathBuf,
-        message: String,
-    },
+    Lex { path: PathBuf, message: String },
     /// A parser error occurred in the specified file.
-    Parse {
-        path: PathBuf,
-        message: String,
-    },
+    Parse { path: PathBuf, message: String },
 }
 
 impl std::fmt::Display for LoadError {
@@ -321,7 +312,11 @@ flow hello(name :: String) -> String {
 
         // The merged program should pass the checker.
         let errors = crate::checker::Checker::new().check(&program);
-        assert!(errors.is_empty(), "expected no check errors, got: {:?}", errors);
+        assert!(
+            errors.is_empty(),
+            "expected no check errors, got: {:?}",
+            errors
+        );
 
         let _ = fs::remove_dir_all(&dir);
     }
@@ -356,11 +351,7 @@ agent @a { permits: [] tools: [] }"#,
         fs::create_dir_all(&sub).unwrap();
 
         // sub/types.pact defines a schema.
-        fs::write(
-            sub.join("types.pact"),
-            "schema Report { title :: String }",
-        )
-        .unwrap();
+        fs::write(sub.join("types.pact"), "schema Report { title :: String }").unwrap();
 
         // defs.pact imports sub/types.pact and defines an agent.
         fs::write(

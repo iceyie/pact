@@ -7,8 +7,8 @@
 //! Maps capability paths (like `search.duckduckgo`) to concrete implementations.
 //! Used when tools declare `source: !capability.provider(args)` instead of raw handlers.
 
-use std::collections::HashMap;
 use crate::DispatchError;
+use std::collections::HashMap;
 
 /// A registered provider with its execution logic.
 #[derive(Debug, Clone)]
@@ -38,64 +38,91 @@ impl ProviderRegistry {
         let mut providers = HashMap::new();
 
         // Search providers
-        providers.insert("search.duckduckgo", ProviderInfo {
-            name: "DuckDuckGo Search",
-            description: "Web search via DuckDuckGo Instant Answer API",
-            required_permission: "net.read",
-        });
+        providers.insert(
+            "search.duckduckgo",
+            ProviderInfo {
+                name: "DuckDuckGo Search",
+                description: "Web search via DuckDuckGo Instant Answer API",
+                required_permission: "net.read",
+            },
+        );
         providers.insert("search.google", ProviderInfo {
             name: "Google Search",
             description: "Web search via Google Custom Search API (requires GOOGLE_API_KEY and GOOGLE_CX env vars)",
             required_permission: "net.read",
         });
-        providers.insert("search.brave", ProviderInfo {
-            name: "Brave Search",
-            description: "Web search via Brave Search API (requires BRAVE_API_KEY env var)",
-            required_permission: "net.read",
-        });
+        providers.insert(
+            "search.brave",
+            ProviderInfo {
+                name: "Brave Search",
+                description: "Web search via Brave Search API (requires BRAVE_API_KEY env var)",
+                required_permission: "net.read",
+            },
+        );
 
         // HTTP providers
-        providers.insert("http.get", ProviderInfo {
-            name: "HTTP GET",
-            description: "Make an HTTP GET request to a URL",
-            required_permission: "net.read",
-        });
-        providers.insert("http.post", ProviderInfo {
-            name: "HTTP POST",
-            description: "Make an HTTP POST request with JSON body",
-            required_permission: "net.write",
-        });
+        providers.insert(
+            "http.get",
+            ProviderInfo {
+                name: "HTTP GET",
+                description: "Make an HTTP GET request to a URL",
+                required_permission: "net.read",
+            },
+        );
+        providers.insert(
+            "http.post",
+            ProviderInfo {
+                name: "HTTP POST",
+                description: "Make an HTTP POST request with JSON body",
+                required_permission: "net.write",
+            },
+        );
 
         // Filesystem providers
-        providers.insert("fs.read", ProviderInfo {
-            name: "Read File",
-            description: "Read contents of a file",
-            required_permission: "fs.read",
-        });
-        providers.insert("fs.write", ProviderInfo {
-            name: "Write File",
-            description: "Write contents to a file",
-            required_permission: "fs.write",
-        });
-        providers.insert("fs.glob", ProviderInfo {
-            name: "Glob Files",
-            description: "Find files matching a glob pattern",
-            required_permission: "fs.read",
-        });
+        providers.insert(
+            "fs.read",
+            ProviderInfo {
+                name: "Read File",
+                description: "Read contents of a file",
+                required_permission: "fs.read",
+            },
+        );
+        providers.insert(
+            "fs.write",
+            ProviderInfo {
+                name: "Write File",
+                description: "Write contents to a file",
+                required_permission: "fs.write",
+            },
+        );
+        providers.insert(
+            "fs.glob",
+            ProviderInfo {
+                name: "Glob Files",
+                description: "Find files matching a glob pattern",
+                required_permission: "fs.read",
+            },
+        );
 
         // Time providers
-        providers.insert("time.now", ProviderInfo {
-            name: "Current Time",
-            description: "Get the current date and time",
-            required_permission: "time.read",
-        });
+        providers.insert(
+            "time.now",
+            ProviderInfo {
+                name: "Current Time",
+                description: "Get the current date and time",
+                required_permission: "time.read",
+            },
+        );
 
         // JSON providers
-        providers.insert("json.parse", ProviderInfo {
-            name: "Parse JSON",
-            description: "Parse a JSON string into structured data",
-            required_permission: "json.parse",
-        });
+        providers.insert(
+            "json.parse",
+            ProviderInfo {
+                name: "Parse JSON",
+                description: "Parse a JSON string into structured data",
+                required_permission: "json.parse",
+            },
+        );
 
         Self { providers }
     }
@@ -120,7 +147,9 @@ impl ProviderRegistry {
     /// List providers under a namespace (e.g. "search" returns ["search.duckduckgo", "search.google", "search.brave"]).
     pub fn list_namespace(&self, namespace: &str) -> Vec<&'static str> {
         let prefix = format!("{}.", namespace);
-        let mut caps: Vec<_> = self.providers.keys()
+        let mut caps: Vec<_> = self
+            .providers
+            .keys()
             .filter(|k| k.starts_with(&prefix) || **k == namespace)
             .copied()
             .collect();
@@ -154,7 +183,9 @@ pub async fn execute_provider(
 
 // ── Search Providers ─────────────────────────────────────────────
 
-async fn execute_search_duckduckgo(params: &HashMap<String, String>) -> Result<String, DispatchError> {
+async fn execute_search_duckduckgo(
+    params: &HashMap<String, String>,
+) -> Result<String, DispatchError> {
     let query = params.get("query").ok_or_else(|| {
         DispatchError::ExecutionError("search.duckduckgo requires a 'query' parameter".into())
     })?;
@@ -167,11 +198,15 @@ async fn execute_search_duckduckgo(params: &HashMap<String, String>) -> Result<S
     println!("[PROVIDER] search.duckduckgo: {query}");
 
     let client = reqwest::Client::new();
-    let response = client.get(&url).send().await
+    let response = client
+        .get(&url)
+        .send()
+        .await
         .map_err(|e| DispatchError::ExecutionError(format!("DuckDuckGo search failed: {e}")))?;
 
-    let body = response.text().await
-        .map_err(|e| DispatchError::ExecutionError(format!("failed to read DuckDuckGo response: {e}")))?;
+    let body = response.text().await.map_err(|e| {
+        DispatchError::ExecutionError(format!("failed to read DuckDuckGo response: {e}"))
+    })?;
 
     println!("[PROVIDER] search.duckduckgo => {} bytes", body.len());
     Ok(body)
@@ -186,26 +221,36 @@ async fn execute_search_google(params: &HashMap<String, String>) -> Result<Strin
         DispatchError::ExecutionError("search.google requires GOOGLE_API_KEY env var".into())
     })?;
     let cx = std::env::var("GOOGLE_CX").map_err(|_| {
-        DispatchError::ExecutionError("search.google requires GOOGLE_CX env var (Custom Search Engine ID)".into())
+        DispatchError::ExecutionError(
+            "search.google requires GOOGLE_CX env var (Custom Search Engine ID)".into(),
+        )
     })?;
 
     let url = format!(
         "https://www.googleapis.com/customsearch/v1?key={}&cx={}&q={}",
-        api_key, cx, urlencoding::encode(query)
+        api_key,
+        cx,
+        urlencoding::encode(query)
     );
 
     println!("[PROVIDER] search.google: {query}");
 
     let client = reqwest::Client::new();
-    let response = client.get(&url).send().await
+    let response = client
+        .get(&url)
+        .send()
+        .await
         .map_err(|e| DispatchError::ExecutionError(format!("Google search failed: {e}")))?;
 
     let status = response.status();
-    let body = response.text().await
-        .map_err(|e| DispatchError::ExecutionError(format!("failed to read Google response: {e}")))?;
+    let body = response.text().await.map_err(|e| {
+        DispatchError::ExecutionError(format!("failed to read Google response: {e}"))
+    })?;
 
     if !status.is_success() {
-        return Err(DispatchError::ExecutionError(format!("Google API returned {status}: {body}")));
+        return Err(DispatchError::ExecutionError(format!(
+            "Google API returned {status}: {body}"
+        )));
     }
 
     println!("[PROVIDER] search.google => {} bytes", body.len());
@@ -229,18 +274,23 @@ async fn execute_search_brave(params: &HashMap<String, String>) -> Result<String
     println!("[PROVIDER] search.brave: {query}");
 
     let client = reqwest::Client::new();
-    let response = client.get(&url)
+    let response = client
+        .get(&url)
         .header("X-Subscription-Token", &api_key)
         .header("Accept", "application/json")
-        .send().await
+        .send()
+        .await
         .map_err(|e| DispatchError::ExecutionError(format!("Brave search failed: {e}")))?;
 
     let status = response.status();
-    let body = response.text().await
-        .map_err(|e| DispatchError::ExecutionError(format!("failed to read Brave response: {e}")))?;
+    let body = response.text().await.map_err(|e| {
+        DispatchError::ExecutionError(format!("failed to read Brave response: {e}"))
+    })?;
 
     if !status.is_success() {
-        return Err(DispatchError::ExecutionError(format!("Brave API returned {status}: {body}")));
+        return Err(DispatchError::ExecutionError(format!(
+            "Brave API returned {status}: {body}"
+        )));
     }
 
     println!("[PROVIDER] search.brave => {} bytes", body.len());
@@ -257,15 +307,22 @@ async fn execute_http_get(params: &HashMap<String, String>) -> Result<String, Di
     println!("[PROVIDER] http.get: {url}");
 
     let client = reqwest::Client::new();
-    let response = client.get(url).send().await
+    let response = client
+        .get(url)
+        .send()
+        .await
         .map_err(|e| DispatchError::ExecutionError(format!("HTTP GET failed: {e}")))?;
 
     let status = response.status();
-    let body = response.text().await
+    let body = response
+        .text()
+        .await
         .map_err(|e| DispatchError::ExecutionError(format!("failed to read response: {e}")))?;
 
     if !status.is_success() {
-        return Err(DispatchError::ExecutionError(format!("HTTP GET {url} returned {status}")));
+        return Err(DispatchError::ExecutionError(format!(
+            "HTTP GET {url} returned {status}"
+        )));
     }
 
     println!("[PROVIDER] http.get => {status} ({} bytes)", body.len());
@@ -276,23 +333,32 @@ async fn execute_http_post(params: &HashMap<String, String>) -> Result<String, D
     let url = params.get("url").ok_or_else(|| {
         DispatchError::ExecutionError("http.post requires a 'url' parameter".into())
     })?;
-    let body_content = params.get("body").cloned().unwrap_or_else(|| "{}".to_string());
+    let body_content = params
+        .get("body")
+        .cloned()
+        .unwrap_or_else(|| "{}".to_string());
 
     println!("[PROVIDER] http.post: {url}");
 
     let client = reqwest::Client::new();
-    let response = client.post(url)
+    let response = client
+        .post(url)
         .header("Content-Type", "application/json")
         .body(body_content)
-        .send().await
+        .send()
+        .await
         .map_err(|e| DispatchError::ExecutionError(format!("HTTP POST failed: {e}")))?;
 
     let status = response.status();
-    let body = response.text().await
+    let body = response
+        .text()
+        .await
         .map_err(|e| DispatchError::ExecutionError(format!("failed to read response: {e}")))?;
 
     if !status.is_success() {
-        return Err(DispatchError::ExecutionError(format!("HTTP POST {url} returned {status}")));
+        return Err(DispatchError::ExecutionError(format!(
+            "HTTP POST {url} returned {status}"
+        )));
     }
 
     println!("[PROVIDER] http.post => {status} ({} bytes)", body.len());
@@ -322,8 +388,9 @@ fn execute_fs_write(params: &HashMap<String, String>) -> Result<String, Dispatch
 
     println!("[PROVIDER] fs.write: {path}");
 
-    std::fs::write(path, content)
-        .map_err(|e| DispatchError::ExecutionError(format!("failed to write file '{path}': {e}")))?;
+    std::fs::write(path, content).map_err(|e| {
+        DispatchError::ExecutionError(format!("failed to write file '{path}': {e}"))
+    })?;
 
     Ok(format!("wrote {} bytes to {path}", content.len()))
 }
@@ -341,8 +408,9 @@ fn execute_fs_glob(params: &HashMap<String, String>) -> Result<String, DispatchE
         .map(|p| p.display().to_string())
         .collect();
 
-    serde_json::to_string_pretty(&paths)
-        .map_err(|e| DispatchError::ExecutionError(format!("failed to serialize glob results: {e}")))
+    serde_json::to_string_pretty(&paths).map_err(|e| {
+        DispatchError::ExecutionError(format!("failed to serialize glob results: {e}"))
+    })
 }
 
 // ── Utility Providers ────────────────────────────────────────────
@@ -356,9 +424,12 @@ fn execute_time_now(_params: &HashMap<String, String>) -> Result<String, Dispatc
 }
 
 fn execute_json_parse(params: &HashMap<String, String>) -> Result<String, DispatchError> {
-    let input = params.get("input").or_else(|| params.get("text")).ok_or_else(|| {
-        DispatchError::ExecutionError("json.parse requires an 'input' parameter".into())
-    })?;
+    let input = params
+        .get("input")
+        .or_else(|| params.get("text"))
+        .ok_or_else(|| {
+            DispatchError::ExecutionError("json.parse requires an 'input' parameter".into())
+        })?;
 
     // Validate it's valid JSON, then pretty-print it
     let parsed: serde_json::Value = serde_json::from_str(input)

@@ -447,7 +447,11 @@ mod tests {
         let tokens = Lexer::new(src, id).lex().unwrap();
         let (program, errors) = Parser::new(&tokens).parse_collecting_errors();
         assert_eq!(errors.len(), 1, "expected 1 parse error");
-        assert_eq!(program.decls.len(), 1, "expected 1 successfully parsed decl");
+        assert_eq!(
+            program.decls.len(),
+            1,
+            "expected 1 successfully parsed decl"
+        );
         match &program.decls[0].kind {
             DeclKind::Flow(f) => assert_eq!(f.name, "hello"),
             _ => panic!("expected Flow"),
@@ -461,7 +465,10 @@ mod tests {
         let id = sm.add("test.pact", src);
         let tokens = Lexer::new(src, id).lex().unwrap();
         let result = Parser::new(&tokens).parse();
-        assert!(result.is_err(), "parse() should still return Err on first error");
+        assert!(
+            result.is_err(),
+            "parse() should still return Err on first error"
+        );
     }
 
     #[test]
@@ -523,7 +530,9 @@ mod tests {
                         assert_eq!(fields.len(), 3);
                         assert_eq!(fields[0].0, "title");
                         assert_eq!(fields[1].0, "body");
-                        assert!(matches!(fields[1].1.kind, ExprKind::Ident(ref n) if n == "summary"));
+                        assert!(
+                            matches!(fields[1].1.kind, ExprKind::Ident(ref n) if n == "summary")
+                        );
                         assert_eq!(fields[2].0, "count");
                     }
                     _ => panic!("expected RecordFields"),

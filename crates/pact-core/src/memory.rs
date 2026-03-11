@@ -76,8 +76,7 @@ impl MemoryStore {
     }
 
     fn memory_path(agent_name: &str) -> PathBuf {
-        let dir = std::env::var("PACT_MEMORY_DIR")
-            .unwrap_or_else(|_| ".pact/memory".to_string());
+        let dir = std::env::var("PACT_MEMORY_DIR").unwrap_or_else(|_| ".pact/memory".to_string());
         PathBuf::from(dir).join(format!("{}.json", agent_name))
     }
 }

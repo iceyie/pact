@@ -43,9 +43,7 @@ impl InferredType {
     pub fn is_compatible(&self, other: &InferredType) -> bool {
         match (self, other) {
             (InferredType::Unknown, _) | (_, InferredType::Unknown) => true,
-            (InferredType::Known(a), InferredType::Known(b)) => {
-                a == b || a == "Any" || b == "Any"
-            }
+            (InferredType::Known(a), InferredType::Known(b)) => a == b || a == "Any" || b == "Any",
         }
     }
 }
@@ -89,22 +87,22 @@ impl TypeInference {
     ) {
         for decl in &program.decls {
             if let DeclKind::Flow(f) = &decl.kind {
-                    // Reset per-flow inference
-                    self.inferred.clear();
+                // Reset per-flow inference
+                self.inferred.clear();
 
-                    // Seed parameter types
-                    for param in &f.params {
-                        if let Some(ty) = &param.ty {
-                            let type_name = crate::checker::Checker::type_expr_to_string(ty);
-                            self.inferred
-                                .insert(param.name.clone(), InferredType::Known(type_name));
-                        }
+                // Seed parameter types
+                for param in &f.params {
+                    if let Some(ty) = &param.ty {
+                        let type_name = crate::checker::Checker::type_expr_to_string(ty);
+                        self.inferred
+                            .insert(param.name.clone(), InferredType::Known(type_name));
                     }
+                }
 
-                    // Walk body expressions
-                    for expr in &f.body {
-                        self.infer_expr(expr, symbols);
-                    }
+                // Walk body expressions
+                for expr in &f.body {
+                    self.infer_expr(expr, symbols);
+                }
             }
         }
     }
@@ -158,8 +156,12 @@ impl TypeInference {
             ExprKind::AgentDispatch { tool, .. } => {
                 // If the tool is declared and has a return type, use it
                 if let ExprKind::ToolRef(tool_name) = &tool.kind {
-                    if let Some(SymbolKind::Tool { return_type: Some(rt), .. }) = symbols.lookup(tool_name) {
-                            return InferredType::Known(rt.clone());
+                    if let Some(SymbolKind::Tool {
+                        return_type: Some(rt),
+                        ..
+                    }) = symbols.lookup(tool_name)
+                    {
+                        return InferredType::Known(rt.clone());
                     }
                 }
                 InferredType::Unknown

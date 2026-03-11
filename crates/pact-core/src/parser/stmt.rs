@@ -371,10 +371,16 @@ impl<'t> Parser<'t> {
                     let mut args = Vec::new();
                     if self.check(&TokenKind::LParen) {
                         self.advance();
-                        args = self.parse_comma_separated(|p| p.expect_ident("parameter name"), &TokenKind::RParen)?;
+                        args = self.parse_comma_separated(
+                            |p| p.expect_ident("parameter name"),
+                            &TokenKind::RParen,
+                        )?;
                         self.expect(&TokenKind::RParen)?;
                     }
-                    source = Some(SourceSpec { capability: path, args });
+                    source = Some(SourceSpec {
+                        capability: path,
+                        args,
+                    });
                 }
                 TokenKind::Output => {
                     self.advance();

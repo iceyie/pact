@@ -172,11 +172,7 @@ pub fn parse_mermaid(input: &str) -> Result<MermaidGraph, MermaidError> {
 
         // Subgraph start.
         if trimmed.starts_with("subgraph") {
-            let name = trimmed
-                .strip_prefix("subgraph")
-                .unwrap()
-                .trim()
-                .to_string();
+            let name = trimmed.strip_prefix("subgraph").unwrap().trim().to_string();
             current_subgraph = Some((name, Vec::new()));
             continue;
         }

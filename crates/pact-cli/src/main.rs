@@ -447,19 +447,18 @@ fn watch_file(path: &str, mut action: impl FnMut()) -> Result<()> {
     use notify::{recommended_watcher, EventKind, RecursiveMode, Watcher};
     use std::sync::mpsc;
 
-    println!(
-        "Watching '{}' for changes... (Ctrl+C to stop)\n",
-        path
-    );
+    println!("Watching '{}' for changes... (Ctrl+C to stop)\n", path);
 
     let (tx, rx) = mpsc::channel();
-    let mut watcher = recommended_watcher(move |res: std::result::Result<notify::Event, notify::Error>| {
-        if let Ok(event) = res {
-            if matches!(event.kind, EventKind::Modify(_)) {
-                let _ = tx.send(());
+    let mut watcher = recommended_watcher(
+        move |res: std::result::Result<notify::Event, notify::Error>| {
+            if let Ok(event) = res {
+                if matches!(event.kind, EventKind::Modify(_)) {
+                    let _ = tx.send(());
+                }
             }
-        }
-    })
+        },
+    )
     .into_diagnostic()
     .wrap_err("failed to create file watcher")?;
 
@@ -489,11 +488,9 @@ fn cmd_check(path: &str, watch: bool) -> Result<()> {
 
     if watch {
         let path_owned = path.to_string();
-        watch_file(path, move || {
-            match load_and_check(&path_owned) {
-                Ok(_) => println!("OK — no errors found in '{}'", path_owned),
-                Err(e) => eprintln!("{:?}", e),
-            }
+        watch_file(path, move || match load_and_check(&path_owned) {
+            Ok(_) => println!("OK — no errors found in '{}'", path_owned),
+            Err(e) => eprintln!("{:?}", e),
         })?;
     }
 
@@ -522,27 +519,25 @@ fn cmd_build(path: &str, out_dir: &str, target_str: &str, watch: bool) -> Result
         let path_owned = path.to_string();
         let out_dir_owned = out_dir.to_string();
         let target_str_owned = target_str.to_string();
-        watch_file(path, move || {
-            match load_and_check(&path_owned) {
-                Ok((program, _sm)) => {
-                    let target = match Target::parse(&target_str_owned) {
-                        Some(t) => t,
-                        None => {
-                            eprintln!("unknown target '{}'", target_str_owned);
-                            return;
-                        }
-                    };
-                    let config = BuildConfig::new(&path_owned, &out_dir_owned, target);
-                    match pact_build::build(&program, &config) {
-                        Ok(()) => {
-                            println!("Built to '{out_dir_owned}/' (target: {target_str_owned})");
-                            list_output_files(&out_dir_owned, 0);
-                        }
-                        Err(e) => eprintln!("build failed: {e}"),
+        watch_file(path, move || match load_and_check(&path_owned) {
+            Ok((program, _sm)) => {
+                let target = match Target::parse(&target_str_owned) {
+                    Some(t) => t,
+                    None => {
+                        eprintln!("unknown target '{}'", target_str_owned);
+                        return;
                     }
+                };
+                let config = BuildConfig::new(&path_owned, &out_dir_owned, target);
+                match pact_build::build(&program, &config) {
+                    Ok(()) => {
+                        println!("Built to '{out_dir_owned}/' (target: {target_str_owned})");
+                        list_output_files(&out_dir_owned, 0);
+                    }
+                    Err(e) => eprintln!("build failed: {e}"),
                 }
-                Err(e) => eprintln!("{:?}", e),
             }
+            Err(e) => eprintln!("{:?}", e),
         })?;
     }
 
@@ -598,18 +593,18 @@ fn cmd_run(
     let mut interpreter = match dispatch {
         "mock" => Interpreter::with_dispatcher(Box::new(MockDispatcher)),
         "claude" => {
-            let dispatcher = pact_dispatch::ClaudeDispatcher::from_env()
-                .map_err(|e| miette::miette!("{e}"))?;
+            let dispatcher =
+                pact_dispatch::ClaudeDispatcher::from_env().map_err(|e| miette::miette!("{e}"))?;
             Interpreter::with_dispatcher(Box::new(dispatcher))
         }
         "openai" => {
-            let dispatcher = pact_dispatch::OpenAIDispatcher::from_env()
-                .map_err(|e| miette::miette!("{e}"))?;
+            let dispatcher =
+                pact_dispatch::OpenAIDispatcher::from_env().map_err(|e| miette::miette!("{e}"))?;
             Interpreter::with_dispatcher(Box::new(dispatcher))
         }
         "ollama" => {
-            let dispatcher = pact_dispatch::OllamaDispatcher::from_env()
-                .map_err(|e| miette::miette!("{e}"))?;
+            let dispatcher =
+                pact_dispatch::OllamaDispatcher::from_env().map_err(|e| miette::miette!("{e}"))?;
             Interpreter::with_dispatcher(Box::new(dispatcher))
         }
         other => {
@@ -671,8 +666,8 @@ fn cmd_run_stream(
     request.system = Some(generate_agent_prompt(agent_decl, program));
 
     // Create the client and run the stream
-    let client = pact_dispatch::client::AnthropicClient::from_env()
-        .map_err(|e| miette::miette!("{e}"))?;
+    let client =
+        pact_dispatch::client::AnthropicClient::from_env().map_err(|e| miette::miette!("{e}"))?;
 
     let rt = tokio::runtime::Runtime::new()
         .into_diagnostic()
@@ -706,9 +701,7 @@ fn cmd_run_stream(
 
 /// Walk a slice of expressions to find the first `AgentDispatch`, returning
 /// `(agent_name, tool_name)`. Handles both bare dispatches and `Let` bindings.
-fn find_dispatch_in_exprs(
-    exprs: &[pact_core::ast::expr::Expr],
-) -> Option<(String, String)> {
+fn find_dispatch_in_exprs(exprs: &[pact_core::ast::expr::Expr]) -> Option<(String, String)> {
     use pact_core::ast::expr::ExprKind;
 
     for expr in exprs {
@@ -982,8 +975,7 @@ fn cmd_from_mermaid(path: &str, output: Option<&str>) -> Result<()> {
         .into_diagnostic()
         .wrap_err_with(|| format!("failed to read '{path}'"))?;
 
-    let pact_source = pact_mermaid::mermaid_to_pact(&source)
-        .map_err(|e| miette::miette!("{e}"))?;
+    let pact_source = pact_mermaid::mermaid_to_pact(&source).map_err(|e| miette::miette!("{e}"))?;
 
     if let Some(out_path) = output {
         fs::write(out_path, &pact_source)
@@ -1103,7 +1095,13 @@ fn cmd_playground(preload: Option<&str>) -> Result<()> {
 
     // Preload a file if specified.
     if let Some(path) = preload {
-        match playground_load_file(path, &mut decls, &mut interpreter, &mut source_map, &mut input_counter) {
+        match playground_load_file(
+            path,
+            &mut decls,
+            &mut interpreter,
+            &mut source_map,
+            &mut input_counter,
+        ) {
             Ok(count) => println!("Loaded {count} declaration(s) from '{path}'"),
             Err(msg) => eprintln!("Error loading '{path}': {msg}"),
         }
@@ -1132,7 +1130,13 @@ fn cmd_playground(preload: Option<&str>) -> Result<()> {
 
                 // Handle REPL commands.
                 if trimmed.starts_with(':') {
-                    if handle_repl_command(trimmed, &mut decls, &mut interpreter, &mut source_map, &mut input_counter) {
+                    if handle_repl_command(
+                        trimmed,
+                        &mut decls,
+                        &mut interpreter,
+                        &mut source_map,
+                        &mut input_counter,
+                    ) {
                         break; // :quit / :exit
                     }
                     continue;
@@ -1191,7 +1195,10 @@ fn dirs_history_path() -> Option<String> {
 }
 
 /// Read additional lines until braces are balanced.
-fn read_multiline(rl: &mut rustyline::DefaultEditor, first_line: &str) -> std::result::Result<String, String> {
+fn read_multiline(
+    rl: &mut rustyline::DefaultEditor,
+    first_line: &str,
+) -> std::result::Result<String, String> {
     let mut buf = String::from(first_line);
     buf.push('\n');
     let mut depth: i32 = 0;
@@ -1397,9 +1404,9 @@ fn playground_list_decls(decls: &[Decl]) {
             DeclKind::Test(t) => tests.push(t.description.clone()),
             DeclKind::Skill(s) => skills.push(format!("${}", s.name)),
             DeclKind::PermitTree(_) => permit_trees += 1,
-            DeclKind::Template(_) => {}   // Templates are structural
-            DeclKind::Directive(_) => {}  // Directives are structural
-            DeclKind::Import(_) => {} // Resolved by loader
+            DeclKind::Template(_) => {}  // Templates are structural
+            DeclKind::Directive(_) => {} // Directives are structural
+            DeclKind::Import(_) => {}    // Resolved by loader
         }
     }
 
@@ -1473,7 +1480,9 @@ fn playground_load_file(
     decls.extend(program.decls.clone());
 
     // Reload the interpreter with all accumulated declarations.
-    let full_program = Program { decls: decls.clone() };
+    let full_program = Program {
+        decls: decls.clone(),
+    };
     *interpreter = Interpreter::with_dispatcher(Box::new(MockDispatcher));
     interpreter.load(&full_program);
 
@@ -1499,8 +1508,8 @@ fn playground_eval(
     let tokens = match tokens_result {
         Ok(t) => t,
         Err(e) => {
-            let report = miette::Report::new(e)
-                .with_source_code(source_map.miette_source(source_id));
+            let report =
+                miette::Report::new(e).with_source_code(source_map.miette_source(source_id));
             eprintln!("{:?}", report);
             return;
         }
@@ -1516,7 +1525,9 @@ fn playground_eval(
         let mut new_decls = decls.clone();
         new_decls.extend(program.decls.clone());
 
-        let full_program = Program { decls: new_decls.clone() };
+        let full_program = Program {
+            decls: new_decls.clone(),
+        };
         let check_errors = Checker::new().check(&full_program);
         if !check_errors.is_empty() {
             for error in &check_errors {
@@ -1549,7 +1560,9 @@ fn playground_eval(
         *decls = new_decls;
 
         // Reload the interpreter.
-        let full_program = Program { decls: decls.clone() };
+        let full_program = Program {
+            decls: decls.clone(),
+        };
         *interpreter = Interpreter::with_dispatcher(Box::new(MockDispatcher));
         interpreter.load(&full_program);
 
@@ -1559,10 +1572,7 @@ fn playground_eval(
     }
 
     // If declaration parsing failed, try wrapping as an expression inside a flow.
-    let wrapper = format!(
-        "flow __repl__() -> String {{\n{}\n}}",
-        input
-    );
+    let wrapper = format!("flow __repl__() -> String {{\n{}\n}}", input);
 
     // Build a full source with existing declarations serialized minimally,
     // plus the wrapper flow. But we only need the wrapper parsed — we'll
@@ -1589,7 +1599,8 @@ fn playground_eval(
         }
     };
 
-    let (wrapper_program, wrapper_parse_errors) = PactParser::new(&wrapper_tokens).parse_collecting_errors();
+    let (wrapper_program, wrapper_parse_errors) =
+        PactParser::new(&wrapper_tokens).parse_collecting_errors();
     if !wrapper_parse_errors.is_empty() {
         // Show original parse errors since expression wrapping also failed.
         if !parse_errors.is_empty() {

@@ -30,7 +30,10 @@ fn check(src: &str) -> Vec<pact_core::checker::CheckError> {
 fn run(src: &str, flow_name: &str, args: Vec<Value>) -> Value {
     let program = parse(src);
     let errors = Checker::new().check(&program);
-    assert!(errors.is_empty(), "expected no check errors, got: {errors:?}");
+    assert!(
+        errors.is_empty(),
+        "expected no check errors, got: {errors:?}"
+    );
 
     let program = parse(src); // re-parse since checker consumes nothing but we need a fresh program
     let mut interp = Interpreter::new();
@@ -102,7 +105,11 @@ fn research_flow_end_to_end() {
         }
     "#;
 
-    let result = run(src, "research", vec![Value::String("quantum computing".into())]);
+    let result = run(
+        src,
+        "research",
+        vec![Value::String("quantum computing".into())],
+    );
 
     // The flow completes and returns the summarize tool result.
     assert_eq!(result, Value::ToolResult("summarize_result".into()));
@@ -132,7 +139,11 @@ fn permission_violation_caught() {
 
     let errors = check(src);
 
-    assert_eq!(errors.len(), 1, "expected exactly one error, got: {errors:?}");
+    assert_eq!(
+        errors.len(),
+        1,
+        "expected exactly one error, got: {errors:?}"
+    );
     match &errors[0] {
         pact_core::checker::CheckError::MissingPermission {
             agent,
@@ -184,7 +195,10 @@ fn tool_with_handler_parses() {
 
     // Also verify it passes the checker
     let errors = Checker::new().check(&program);
-    assert!(errors.is_empty(), "expected no check errors, got: {errors:?}");
+    assert!(
+        errors.is_empty(),
+        "expected no check errors, got: {errors:?}"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -379,7 +393,10 @@ fn full_program_with_all_constructs() {
 
     // The whole program should pass the checker with no errors.
     let errors = Checker::new().check(&program);
-    assert!(errors.is_empty(), "expected no check errors, got: {errors:?}");
+    assert!(
+        errors.is_empty(),
+        "expected no check errors, got: {errors:?}"
+    );
 
     // Run the flow end-to-end.
     let program = parse(src);

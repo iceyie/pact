@@ -47,8 +47,8 @@ impl AnthropicClient {
         // Load .env file if present (silently ignore if missing)
         dotenvy::dotenv().ok();
 
-        let api_key = std::env::var("ANTHROPIC_API_KEY")
-            .map_err(|_| DispatchError::MissingApiKey)?;
+        let api_key =
+            std::env::var("ANTHROPIC_API_KEY").map_err(|_| DispatchError::MissingApiKey)?;
         Ok(Self::new(api_key))
     }
 
@@ -239,8 +239,7 @@ mod tests {
 
     #[test]
     fn client_with_custom_base_url() {
-        let client = AnthropicClient::new("test-key".into())
-            .with_base_url("http://localhost:8080");
+        let client = AnthropicClient::new("test-key".into()).with_base_url("http://localhost:8080");
         assert_eq!(client.base_url, "http://localhost:8080");
     }
 

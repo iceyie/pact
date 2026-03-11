@@ -136,7 +136,13 @@ impl LanguageServer for PactBackend {
             Some("^") => {
                 // Suggest common permission paths
                 let perms = vec![
-                    "net", "net.read", "net.write", "llm", "llm.query", "fs", "fs.read",
+                    "net",
+                    "net.read",
+                    "net.write",
+                    "llm",
+                    "llm.query",
+                    "fs",
+                    "fs.read",
                     "fs.write",
                 ];
                 for p in perms {
@@ -219,20 +225,48 @@ impl LanguageServer for PactBackend {
                         "Agent bundle declaration",
                         CompletionItemKind::KEYWORD,
                     ),
-                    ("template", "Template declaration", CompletionItemKind::KEYWORD),
-                    ("directive", "Directive declaration", CompletionItemKind::KEYWORD),
-                    ("type", "Type alias declaration", CompletionItemKind::KEYWORD),
+                    (
+                        "template",
+                        "Template declaration",
+                        CompletionItemKind::KEYWORD,
+                    ),
+                    (
+                        "directive",
+                        "Directive declaration",
+                        CompletionItemKind::KEYWORD,
+                    ),
+                    (
+                        "type",
+                        "Type alias declaration",
+                        CompletionItemKind::KEYWORD,
+                    ),
                     ("import", "Import statement", CompletionItemKind::KEYWORD),
                     ("return", "Return statement", CompletionItemKind::KEYWORD),
                     ("fail", "Fail statement", CompletionItemKind::KEYWORD),
                     ("match", "Match expression", CompletionItemKind::KEYWORD),
                     ("parallel", "Parallel block", CompletionItemKind::KEYWORD),
                     ("retry", "Retry count for tool", CompletionItemKind::KEYWORD),
-                    ("cache", "Cache duration for tool", CompletionItemKind::KEYWORD),
-                    ("validate", "Validation mode for tool", CompletionItemKind::KEYWORD),
-                    ("on_error", "Error handling expression", CompletionItemKind::KEYWORD),
+                    (
+                        "cache",
+                        "Cache duration for tool",
+                        CompletionItemKind::KEYWORD,
+                    ),
+                    (
+                        "validate",
+                        "Validation mode for tool",
+                        CompletionItemKind::KEYWORD,
+                    ),
+                    (
+                        "on_error",
+                        "Error handling expression",
+                        CompletionItemKind::KEYWORD,
+                    ),
                     ("run", "Run a flow", CompletionItemKind::KEYWORD),
-                    ("env", "Environment variable lookup", CompletionItemKind::FUNCTION),
+                    (
+                        "env",
+                        "Environment variable lookup",
+                        CompletionItemKind::FUNCTION,
+                    ),
                 ];
 
                 for (kw, detail, kind) in &keywords {
@@ -247,9 +281,7 @@ impl LanguageServer for PactBackend {
                 }
 
                 // Type name completions
-                let type_names = [
-                    "String", "Int", "Float", "Bool", "List", "Map",
-                ];
+                let type_names = ["String", "Int", "Float", "Bool", "List", "Map"];
                 for ty in &type_names {
                     if prefix.is_empty() || ty.starts_with(&prefix) {
                         items.push(CompletionItem {
@@ -474,10 +506,7 @@ fn extract_names(program: &Program, filter: DeclFilter) -> Vec<String> {
 
 /// Get the text of a specific line (0-indexed).
 fn get_line_text(text: &str, line: u32) -> String {
-    text.lines()
-        .nth(line as usize)
-        .unwrap_or("")
-        .to_string()
+    text.lines().nth(line as usize).unwrap_or("").to_string()
 }
 
 /// Extract the word prefix ending at the cursor column.
@@ -508,20 +537,28 @@ fn find_hover_info(text: &str, offset: usize) -> Option<String> {
 
         match &decl.kind {
             DeclKind::Agent(a) => {
-                let tools: Vec<String> = a.tools.iter().filter_map(|e| {
-                    if let pact_core::ast::expr::ExprKind::ToolRef(n) = &e.kind {
-                        Some(format!("#{}", n))
-                    } else {
-                        None
-                    }
-                }).collect();
-                let permits: Vec<String> = a.permits.iter().filter_map(|e| {
-                    if let pact_core::ast::expr::ExprKind::PermissionRef(segs) = &e.kind {
-                        Some(format!("^{}", segs.join(".")))
-                    } else {
-                        None
-                    }
-                }).collect();
+                let tools: Vec<String> = a
+                    .tools
+                    .iter()
+                    .filter_map(|e| {
+                        if let pact_core::ast::expr::ExprKind::ToolRef(n) = &e.kind {
+                            Some(format!("#{}", n))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                let permits: Vec<String> = a
+                    .permits
+                    .iter()
+                    .filter_map(|e| {
+                        if let pact_core::ast::expr::ExprKind::PermissionRef(segs) = &e.kind {
+                            Some(format!("^{}", segs.join(".")))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
                 let model = a.model.as_ref().and_then(|e| {
                     if let pact_core::ast::expr::ExprKind::StringLit(s) = &e.kind {
                         Some(s.clone())
@@ -542,37 +579,52 @@ fn find_hover_info(text: &str, offset: usize) -> Option<String> {
                 return Some(info);
             }
             DeclKind::Flow(f) => {
-                let params: Vec<String> = f.params.iter().map(|p| {
-                    match &p.ty {
+                let params: Vec<String> = f
+                    .params
+                    .iter()
+                    .map(|p| match &p.ty {
                         Some(ty) => format!("{} :: {}", p.name, format_type_expr(ty)),
                         None => p.name.clone(),
-                    }
-                }).collect();
-                let ret = f.return_type.as_ref()
+                    })
+                    .collect();
+                let ret = f
+                    .return_type
+                    .as_ref()
                     .map(|ty| format!(" -> {}", format_type_expr(ty)))
                     .unwrap_or_default();
                 return Some(format!(
                     "**flow** `{}`\n\n```pact\nflow {}({}){}\n```",
-                    f.name, f.name, params.join(", "), ret
+                    f.name,
+                    f.name,
+                    params.join(", "),
+                    ret
                 ));
             }
             DeclKind::Schema(s) => {
-                let fields: Vec<String> = s.fields.iter().map(|f| {
-                    format!("  {} :: {}", f.name, format_type_expr(&f.ty))
-                }).collect();
+                let fields: Vec<String> = s
+                    .fields
+                    .iter()
+                    .map(|f| format!("  {} :: {}", f.name, format_type_expr(&f.ty)))
+                    .collect();
                 return Some(format!(
                     "**schema** `{}`\n\n```pact\nschema {} {{\n{}\n}}\n```",
-                    s.name, s.name, fields.join("\n")
+                    s.name,
+                    s.name,
+                    fields.join("\n")
                 ));
             }
             DeclKind::Tool(t) => {
-                let params: Vec<String> = t.params.iter().map(|p| {
-                    match &p.ty {
+                let params: Vec<String> = t
+                    .params
+                    .iter()
+                    .map(|p| match &p.ty {
                         Some(ty) => format!("{} :: {}", p.name, format_type_expr(ty)),
                         None => p.name.clone(),
-                    }
-                }).collect();
-                let ret = t.return_type.as_ref()
+                    })
+                    .collect();
+                let ret = t
+                    .return_type
+                    .as_ref()
                     .map(|ty| format!("\n- **returns**: `{}`", format_type_expr(ty)))
                     .unwrap_or_default();
                 let mut info = format!("**tool** `#{}`\n", t.name);
@@ -584,7 +636,11 @@ fn find_hover_info(text: &str, offset: usize) -> Option<String> {
                     if source.args.is_empty() {
                         info.push_str(&format!("\n- **source**: `^{}`", source.capability));
                     } else {
-                        info.push_str(&format!("\n- **source**: `^{}({})`", source.capability, source.args.join(", ")));
+                        info.push_str(&format!(
+                            "\n- **source**: `^{}({})`",
+                            source.capability,
+                            source.args.join(", ")
+                        ));
                     }
                 }
                 if let Some(output) = &t.output {
@@ -602,13 +658,17 @@ fn find_hover_info(text: &str, offset: usize) -> Option<String> {
                 return Some(info);
             }
             DeclKind::Skill(s) => {
-                let params: Vec<String> = s.params.iter().map(|p| {
-                    match &p.ty {
+                let params: Vec<String> = s
+                    .params
+                    .iter()
+                    .map(|p| match &p.ty {
                         Some(ty) => format!("{} :: {}", p.name, format_type_expr(ty)),
                         None => p.name.clone(),
-                    }
-                }).collect();
-                let ret = s.return_type.as_ref()
+                    })
+                    .collect();
+                let ret = s
+                    .return_type
+                    .as_ref()
                     .map(|ty| format!("\n- **returns**: `{}`", format_type_expr(ty)))
                     .unwrap_or_default();
                 let mut info = format!("**skill** `${}`\n", s.name);
@@ -621,20 +681,26 @@ fn find_hover_info(text: &str, offset: usize) -> Option<String> {
             DeclKind::TypeAlias(t) => {
                 return Some(format!(
                     "**type** `{}`\n\n```pact\ntype {} = {}\n```",
-                    t.name, t.name, t.variants.join(" | ")
+                    t.name,
+                    t.name,
+                    t.variants.join(" | ")
                 ));
             }
             DeclKind::PermitTree(_) => {
                 return Some("**permit_tree**\n\nPermission hierarchy declaration.".into());
             }
             DeclKind::AgentBundle(ab) => {
-                let agents: Vec<String> = ab.agents.iter().filter_map(|e| {
-                    if let pact_core::ast::expr::ExprKind::AgentRef(n) = &e.kind {
-                        Some(format!("@{}", n))
-                    } else {
-                        None
-                    }
-                }).collect();
+                let agents: Vec<String> = ab
+                    .agents
+                    .iter()
+                    .filter_map(|e| {
+                        if let pact_core::ast::expr::ExprKind::AgentRef(n) = &e.kind {
+                            Some(format!("@{}", n))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
                 let mut info = format!("**agent_bundle** `@{}`\n", ab.name);
                 if !agents.is_empty() {
                     info.push_str(&format!("\n- **agents**: {}\n", agents.join(", ")));
@@ -642,28 +708,36 @@ fn find_hover_info(text: &str, offset: usize) -> Option<String> {
                 return Some(info);
             }
             DeclKind::Template(t) => {
-                let entries: Vec<String> = t.entries.iter().map(|e| {
-                    match e {
+                let entries: Vec<String> = t
+                    .entries
+                    .iter()
+                    .map(|e| match e {
                         pact_core::ast::stmt::TemplateEntry::Field { name, ty, .. } => {
                             format!("  {} :: {}", name, format_type_expr(ty))
                         }
-                        pact_core::ast::stmt::TemplateEntry::Repeat { name, ty, count, .. } => {
+                        pact_core::ast::stmt::TemplateEntry::Repeat {
+                            name, ty, count, ..
+                        } => {
                             format!("  {} :: {} * {}", name, format_type_expr(ty), count)
                         }
                         pact_core::ast::stmt::TemplateEntry::Section { name, .. } => {
                             format!("  section {}", name)
                         }
-                    }
-                }).collect();
+                    })
+                    .collect();
                 return Some(format!(
                     "**template** `%{}`\n\n```pact\ntemplate %{} {{\n{}\n}}\n```",
-                    t.name, t.name, entries.join("\n")
+                    t.name,
+                    t.name,
+                    entries.join("\n")
                 ));
             }
             DeclKind::Directive(d) => {
-                let params: Vec<String> = d.params.iter().map(|p| {
-                    format!("  {} :: {} = ...", p.name, format_type_expr(&p.ty))
-                }).collect();
+                let params: Vec<String> = d
+                    .params
+                    .iter()
+                    .map(|p| format!("  {} :: {} = ...", p.name, format_type_expr(&p.ty)))
+                    .collect();
                 let mut info = format!("**directive** `%{}`\n", d.name);
                 if !params.is_empty() {
                     info.push_str(&format!(
@@ -763,7 +837,11 @@ mod tests {
     fn diagnose_valid_program_no_errors() {
         let src = "agent @greeter { permits: [^llm.query] tools: [#greet] }";
         let diags = diagnose(src);
-        assert!(diags.is_empty(), "expected no diagnostics, got: {:?}", diags);
+        assert!(
+            diags.is_empty(),
+            "expected no diagnostics, got: {:?}",
+            diags
+        );
     }
 
     #[test]
@@ -792,7 +870,10 @@ mod tests {
         // Check errors are reported as warnings
         let type_diag = diags.iter().find(|d| d.message.contains("unknown type"));
         assert!(type_diag.is_some(), "expected unknown type diagnostic");
-        assert_eq!(type_diag.unwrap().severity, Some(DiagnosticSeverity::WARNING));
+        assert_eq!(
+            type_diag.unwrap().severity,
+            Some(DiagnosticSeverity::WARNING)
+        );
     }
 
     #[test]
@@ -800,7 +881,10 @@ mod tests {
         let src = "agent @bad { permits: [] tools: [#web_search] }";
         let diags = diagnose(src);
         let perm_diag = diags.iter().find(|d| d.message.contains("permission"));
-        assert!(perm_diag.is_some(), "expected missing permission diagnostic");
+        assert!(
+            perm_diag.is_some(),
+            "expected missing permission diagnostic"
+        );
     }
 
     #[test]
@@ -808,7 +892,10 @@ mod tests {
         let src = "agent @a { permits: [] tools: [] } agent @a { permits: [] tools: [] }";
         let diags = diagnose(src);
         let dup_diag = diags.iter().find(|d| d.message.contains("duplicate"));
-        assert!(dup_diag.is_some(), "expected duplicate definition diagnostic");
+        assert!(
+            dup_diag.is_some(),
+            "expected duplicate definition diagnostic"
+        );
     }
 
     #[test]

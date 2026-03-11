@@ -59,10 +59,7 @@ pub enum MediationError {
         expected_type: String,
     },
     /// The agent acted outside its declared scope.
-    ScopeViolation {
-        agent_name: String,
-        detail: String,
-    },
+    ScopeViolation { agent_name: String, detail: String },
 }
 
 impl std::fmt::Display for MediationError {
@@ -136,10 +133,7 @@ impl std::fmt::Display for MediationError {
                     agent_name, expected_type
                 )
             }
-            MediationError::ScopeViolation {
-                agent_name,
-                detail,
-            } => {
+            MediationError::ScopeViolation { agent_name, detail } => {
                 write!(
                     f,
                     "MEDIATION: agent @{} acted outside declared scope: {}",
@@ -379,9 +373,9 @@ impl RuntimeMediator {
 
     /// Check if a permission is granted (supports parent coverage).
     fn permission_granted(&self, required: &str) -> bool {
-        self.granted_permissions.iter().any(|granted| {
-            granted == required || required.starts_with(&format!("{}.", granted))
-        })
+        self.granted_permissions
+            .iter()
+            .any(|granted| granted == required || required.starts_with(&format!("{}.", granted)))
     }
 }
 
@@ -702,7 +696,9 @@ mod tests {
         let program = parse_program(src);
         if let DeclKind::Agent(agent) = &program.decls[1].kind {
             let mediator = RuntimeMediator::new(agent, &program);
-            let err = mediator.validate_output("", "search", &program).unwrap_err();
+            let err = mediator
+                .validate_output("", "search", &program)
+                .unwrap_err();
             assert!(matches!(err, MediationError::EmptyOutput { .. }));
         }
     }
@@ -748,7 +744,9 @@ mod tests {
         if let DeclKind::Agent(agent) = &program.decls[1].kind {
             let mediator = RuntimeMediator::new(agent, &program);
             let output = "Your card number is 4111111111111111 and it's valid.";
-            let err = mediator.validate_output(output, "greet", &program).unwrap_err();
+            let err = mediator
+                .validate_output(output, "greet", &program)
+                .unwrap_err();
             assert!(matches!(err, MediationError::SensitiveDataLeak { .. }));
         }
     }
@@ -794,7 +792,9 @@ mod tests {
         if let DeclKind::Agent(agent) = &program.decls[1].kind {
             let mediator = RuntimeMediator::new(agent, &program);
             let output = "I have saved your data to the database for future use.";
-            let err = mediator.validate_output(output, "search", &program).unwrap_err();
+            let err = mediator
+                .validate_output(output, "search", &program)
+                .unwrap_err();
             assert!(matches!(err, MediationError::ScopeViolation { .. }));
         }
     }
@@ -817,7 +817,9 @@ mod tests {
         if let DeclKind::Agent(agent) = &program.decls[1].kind {
             let mediator = RuntimeMediator::new(agent, &program);
             let output = "I have sent the email with the results to the team.";
-            let err = mediator.validate_output(output, "search", &program).unwrap_err();
+            let err = mediator
+                .validate_output(output, "search", &program)
+                .unwrap_err();
             assert!(matches!(err, MediationError::ScopeViolation { .. }));
         }
     }
@@ -873,22 +875,34 @@ mod tests {
     #[test]
     fn storage_claim_detection() {
         assert!(output_claims_data_storage("I have saved your preferences."));
-        assert!(output_claims_data_storage("The data has been stored in our system."));
+        assert!(output_claims_data_storage(
+            "The data has been stored in our system."
+        ));
         assert!(!output_claims_data_storage("Here are the search results."));
     }
 
     #[test]
     fn sending_claim_detection() {
-        assert!(output_claims_sending("I have sent the report to your email."));
+        assert!(output_claims_sending(
+            "I have sent the report to your email."
+        ));
         assert!(output_claims_sending("The notification sent successfully."));
-        assert!(!output_claims_sending("Here is the information you requested."));
+        assert!(!output_claims_sending(
+            "Here is the information you requested."
+        ));
     }
 
     #[test]
     fn system_prompt_leak_patterns() {
-        assert!(output_leaks_system_prompt("My system prompt is: be helpful"));
-        assert!(output_leaks_system_prompt("## Security Guidelines\nFollow these..."));
-        assert!(!output_leaks_system_prompt("The security of the system is important."));
+        assert!(output_leaks_system_prompt(
+            "My system prompt is: be helpful"
+        ));
+        assert!(output_leaks_system_prompt(
+            "## Security Guidelines\nFollow these..."
+        ));
+        assert!(!output_leaks_system_prompt(
+            "The security of the system is important."
+        ));
     }
 
     // ── Handler permission tests ────────────────────────────────

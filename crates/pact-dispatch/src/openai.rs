@@ -100,8 +100,8 @@ impl OpenAIDispatcher {
     /// Create a dispatcher with an explicit API key and model.
     pub fn new(api_key: String, model: String) -> Result<Self, DispatchError> {
         let client = Client::new();
-        let runtime = tokio::runtime::Runtime::new()
-            .map_err(|e| DispatchError::HttpError(e.to_string()))?;
+        let runtime =
+            tokio::runtime::Runtime::new().map_err(|e| DispatchError::HttpError(e.to_string()))?;
         Ok(Self {
             api_key,
             model,
@@ -251,11 +251,8 @@ mod tests {
 
     #[test]
     fn build_prompt_formats_correctly() {
-        let prompt = OpenAIDispatcher::build_prompt(
-            "greeter",
-            "greet",
-            &[Value::String("world".into())],
-        );
+        let prompt =
+            OpenAIDispatcher::build_prompt("greeter", "greet", &[Value::String("world".into())]);
         assert!(prompt.contains("@greeter"));
         assert!(prompt.contains("#greet"));
         assert!(prompt.contains("world"));
@@ -263,11 +260,7 @@ mod tests {
 
     #[test]
     fn build_prompt_multiple_args() {
-        let prompt = OpenAIDispatcher::build_prompt(
-            "math",
-            "add",
-            &[Value::Int(2), Value::Int(3)],
-        );
+        let prompt = OpenAIDispatcher::build_prompt("math", "add", &[Value::Int(2), Value::Int(3)]);
         assert!(prompt.contains("@math"));
         assert!(prompt.contains("#add"));
         assert!(prompt.contains("2"));
@@ -325,10 +318,7 @@ mod tests {
     fn parse_stream_chunk() {
         let json = r#"{"choices": [{"delta": {"content": "Hello"}}]}"#;
         let parsed: ChatCompletionChunk = serde_json::from_str(json).unwrap();
-        assert_eq!(
-            parsed.choices[0].delta.content.as_deref(),
-            Some("Hello")
-        );
+        assert_eq!(parsed.choices[0].delta.content.as_deref(), Some("Hello"));
     }
 
     #[test]
