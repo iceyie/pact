@@ -423,6 +423,48 @@ Add to your VS Code `settings.json`:
 
 The extension auto-starts the language server when you open a `.pact` file. Errors appear inline as you type — the same compile-time permission checks and type validation you get from `pact check`, but live in your editor.
 
+## MCP Server
+
+PACT includes a built-in [Model Context Protocol](https://modelcontextprotocol.io) server. This lets AI assistants (Claude Desktop, Cursor, Windsurf, etc.) use PACT tools directly.
+
+### Available MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `pact_check` | Validate `.pact` source for syntax and semantic errors |
+| `pact_list` | List all declarations (agents, tools, flows, templates, etc.) |
+| `pact_run` | Execute a flow using mock dispatch |
+| `pact_scaffold` | Generate `.pact` source from a high-level agent description |
+| `pact_validate_permissions` | Check for overly broad permission boundaries |
+
+### Setup with Claude Desktop
+
+Build the MCP server:
+
+```bash
+cargo build --release --bin pact-mcp
+```
+
+Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "pact": {
+      "command": "/path/to/pact/target/release/pact-mcp"
+    }
+  }
+}
+```
+
+Restart Claude Desktop. You can now ask Claude to check, scaffold, and run PACT programs directly.
+
+### Example: Scaffold an agent system
+
+Ask Claude: *"Create a PACT agent system with a researcher that searches the web and a writer that drafts reports."*
+
+Claude will use `pact_scaffold` to generate valid `.pact` source, then `pact_check` to validate it.
+
 ## CLI Reference
 
 | Command | Description |
