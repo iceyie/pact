@@ -40,7 +40,7 @@
       "properties": {
         "pact.lspPath": {
           "type": "string",
-          "default": "/Users/gabrielsabadin/Documents/Projects/Own/Pact/target/release/pact-lsp",
+          "default": "pact-lsp",
           "description": "Path to the pact-lsp binary"
         }
       }
