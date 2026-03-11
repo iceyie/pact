@@ -271,26 +271,60 @@ Write 10 lines of PACT. Get production-grade guardrails for free.
 
 ## Architecture
 
+### Compiler Pipeline
+
+```mermaid
+flowchart TD
+    A[".pact source"] --> B["Lexer"]
+    B --> C["Parser"]
+    C --> D["Checker"]
+    D --> E["Build"]
+    D --> F["Dispatch"]
+
+    B -.- B1["Tokenizes sigils, keywords,\n<<prompt>> literals"]
+    C -.- C1["Recursive descent\nwith error recovery"]
+    D -.- D1["Types, permissions,\ntemplates, directives"]
+    E -.- E1["TOML configs\nMarkdown prompts\nClaude JSON schemas\nGuardrails"]
+    F -.- F1["Claude API\nOpenAI API\nOllama API\nRetry + Cache\nMediation"]
+
+    style A fill:#764ba2,stroke:#667eea,color:#fff
+    style B fill:#1a1a2e,stroke:#667eea,color:#fff
+    style C fill:#1a1a2e,stroke:#667eea,color:#fff
+    style D fill:#1a1a2e,stroke:#667eea,color:#fff
+    style E fill:#1a1a2e,stroke:#82aaff,color:#fff
+    style F fill:#1a1a2e,stroke:#c3e88d,color:#fff
+    style B1 fill:none,stroke:none,color:#888
+    style C1 fill:none,stroke:none,color:#888
+    style D1 fill:none,stroke:none,color:#888
+    style E1 fill:none,stroke:none,color:#888
+    style F1 fill:none,stroke:none,color:#888
 ```
-┌─────────────┐
-│  .pact file  │
-└──────┬──────┘
-       │
-  ┌────▼────┐
-  │  Lexer   │   Tokenizes sigils, keywords, <<prompt>> literals
-  └────┬────┘
-  ┌────▼────┐
-  │  Parser  │   Recursive descent with error recovery
-  └────┬────┘
-  ┌────▼────┐
-  │ Checker  │   Types, permissions, template/directive validation
-  └────┬────┘
-  ┌────▼────┐
-  │  Build   │   TOML configs, Markdown prompts, Claude JSON schemas
-  └────┬────┘
-  ┌────▼────┐
-  │Dispatch  │   Tool execution, retry, compliance mediation
-  └─────────┘
+
+### Agent Execution Flow
+
+```mermaid
+flowchart LR
+    A["Flow"] --> B["@agent -> #tool(args)"]
+    B --> C{"Permission\nCheck"}
+    C -->|Pass| D["Source Provider\nor Handler"]
+    C -->|Fail| E["Compile Error"]
+    D --> F{"Retry?"}
+    F -->|Success| G["Cache Result"]
+    F -->|Fail + retries left| D
+    F -->|Fail + no retries| H["on_error\nfallback"]
+    G --> I["Validate Output\nagainst Template"]
+    I --> J["Return to Flow"]
+
+    style A fill:#764ba2,stroke:#667eea,color:#fff
+    style B fill:#1a1a2e,stroke:#82aaff,color:#fff
+    style C fill:#1a1a2e,stroke:#f78c6c,color:#fff
+    style D fill:#1a1a2e,stroke:#c3e88d,color:#fff
+    style E fill:#f07178,stroke:#f07178,color:#fff
+    style F fill:#1a1a2e,stroke:#ffcb6b,color:#fff
+    style G fill:#1a1a2e,stroke:#c3e88d,color:#fff
+    style H fill:#1a1a2e,stroke:#f78c6c,color:#fff
+    style I fill:#1a1a2e,stroke:#c792ea,color:#fff
+    style J fill:#764ba2,stroke:#667eea,color:#fff
 ```
 
 Seven crates, one workspace:
