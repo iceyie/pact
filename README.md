@@ -119,6 +119,43 @@ Every symbol in PACT carries meaning through its sigil.
 | `^` | Permission | `^net.read` |
 | `%` | Template / Directive | `%report_format` |
 
+### Type Safety -- Catch Errors Before They Run
+
+Every parameter, return value, and variable in PACT has a type. The compiler validates types at compile time -- no runtime surprises.
+
+```pact
+-- Parameters and returns are typed with ::
+tool #analyze {
+    params {
+        data :: String
+        count :: Int
+        tags :: List<String>
+    }
+    returns :: String
+}
+
+-- Flow signatures are typed
+flow process(input :: String, limit :: Int) -> String {
+    result = @agent -> #analyze(input, limit, ["tag1"])
+    return result
+}
+```
+
+Built-in types: `String`, `Int`, `Float`, `Bool`, `List<T>`, `Map<K,V>`, `Optional<T>`, `Record`, `Any`
+
+The type checker also infers variable types from assignments. If a variable is assigned a `String` and later reassigned an `Int`, the compiler warns:
+
+```
+  w variable 'result' was inferred as String but is being assigned Int
+   ,---[pipeline.pact:5:5]
+ 5 |     result = 42
+   .     ---+---
+   .        `-- incompatible reassignment
+   `----
+```
+
+Types flow through the entire program: tool return types propagate to variables, flow parameters are validated at call sites, and template fields enforce their declared types.
+
 ### Permissions -- Security by Default
 
 Permissions are not an afterthought. They are part of the grammar. If an agent uses a tool it lacks permission for, the compiler rejects the program:
