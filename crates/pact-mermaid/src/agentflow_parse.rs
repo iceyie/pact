@@ -21,7 +21,7 @@ pub fn parse_agentflow_text(input: &str) -> Result<AgentFlowGraph, MermaidError>
 #[derive(Debug, Clone, PartialEq)]
 enum ParserState {
     TopLevel,
-    InAgent(String),           // agent id
+    InAgent(String),            // agent id
     InMetadata(MetadataTarget), // collecting @{...} block lines
 }
 
@@ -242,12 +242,8 @@ impl<'a> AgentFlowParser<'a> {
                 }
             }
             NodeType::Schema => Ok(MetadataTarget::Schema(id.to_string(), label.to_string())),
-            NodeType::Template => {
-                Ok(MetadataTarget::Template(id.to_string(), label.to_string()))
-            }
-            NodeType::Directive => {
-                Ok(MetadataTarget::Directive(id.to_string(), label.to_string()))
-            }
+            NodeType::Template => Ok(MetadataTarget::Template(id.to_string(), label.to_string())),
+            NodeType::Directive => Ok(MetadataTarget::Directive(id.to_string(), label.to_string())),
         }
     }
 
@@ -753,10 +749,7 @@ agentflow LR
         assert_eq!(graph.agents[0].id, "researcher");
         assert_eq!(graph.agents[0].nodes.len(), 1);
         assert_eq!(graph.agents[0].nodes[0].id, "research");
-        assert_eq!(
-            graph.agents[0].nodes[0].metadata.description,
-            "Do research"
-        );
+        assert_eq!(graph.agents[0].nodes[0].metadata.description, "Do research");
         assert_eq!(
             graph.agents[0].nodes[0].metadata.requires,
             vec!["^net.read"]

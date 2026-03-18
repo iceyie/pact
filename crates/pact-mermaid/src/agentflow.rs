@@ -227,7 +227,6 @@ pub enum EdgeType {
     Reference,
 }
 
-
 /// An edge connecting two nodes.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentFlowEdge {

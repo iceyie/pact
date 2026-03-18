@@ -166,10 +166,7 @@ fn emit_directive(directive: &AgentFlowDirectiveNode, out: &mut String) {
             if let Some(eq_pos) = ty_default.find(" = ") {
                 let ty = &ty_default[..eq_pos];
                 let default = &ty_default[eq_pos + 3..];
-                out.push_str(&format!(
-                    "        {} :: {} = <<{}>>\n",
-                    name, ty, default
-                ));
+                out.push_str(&format!("        {} :: {} = <<{}>>\n", name, ty, default));
             } else {
                 out.push_str(&format!("        {} :: {}\n", name, ty_default));
             }
@@ -184,7 +181,10 @@ fn emit_directive(directive: &AgentFlowDirectiveNode, out: &mut String) {
 fn emit_tool(tool: &AgentFlowToolNode, out: &mut String) {
     let name = to_snake_case(&tool.id);
     out.push_str(&format!("tool #{} {{\n", name));
-    out.push_str(&format!("    description: <<{}>>\n", tool.metadata.description));
+    out.push_str(&format!(
+        "    description: <<{}>>\n",
+        tool.metadata.description
+    ));
 
     if !tool.metadata.requires.is_empty() {
         let perms: Vec<String> = tool
@@ -430,10 +430,7 @@ fn emit_flow(flow_edges: &[&AgentFlowEdge], graph: &AgentFlowGraph, out: &mut St
                 step_var, agent_id, to_name, prev
             ));
         } else {
-            out.push_str(&format!(
-                "    {} = #{}({})\n",
-                step_var, to_name, prev
-            ));
+            out.push_str(&format!("    {} = #{}({})\n", step_var, to_name, prev));
         }
     }
 

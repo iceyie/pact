@@ -111,9 +111,7 @@ pub fn pact_to_agentflow_graph(program: &Program) -> AgentFlowGraph {
                 let mut sections = Vec::new();
                 for entry in &t.entries {
                     match entry {
-                        TemplateEntry::Field {
-                            name, ty, ..
-                        } => {
+                        TemplateEntry::Field { name, ty, .. } => {
                             fields.insert(name.clone(), type_expr_to_string(ty));
                         }
                         TemplateEntry::Repeat {
@@ -264,10 +262,7 @@ pub fn pact_to_agentflow_graph(program: &Program) -> AgentFlowGraph {
 ///        Plus skip edges: triage_alert →|triage| create_report,
 ///        analyze_incident →|investigation| create_report,
 ///        root_cause_analysis →|root_cause| create_report
-fn extract_flow_edges(
-    body: &[pact_core::ast::expr::Expr],
-    edges: &mut Vec<AgentFlowEdge>,
-) {
+fn extract_flow_edges(body: &[pact_core::ast::expr::Expr], edges: &mut Vec<AgentFlowEdge>) {
     use std::collections::HashMap;
 
     // Maps variable name -> tool that produced it
@@ -305,9 +300,7 @@ fn extract_flow_edges(
             for arg_name in &args {
                 if let Some(source_tool) = var_to_tool.get(arg_name) {
                     // Skip if this is the immediate predecessor (already covered above)
-                    let is_immediate = prev_tool
-                        .as_ref()
-                        .is_some_and(|(pv, _)| pv == arg_name);
+                    let is_immediate = prev_tool.as_ref().is_some_and(|(pv, _)| pv == arg_name);
                     if !is_immediate {
                         edges.push(AgentFlowEdge {
                             from: source_tool.clone(),
@@ -373,9 +366,7 @@ fn extract_full_dispatch_info(
 }
 
 /// Extract tool name and argument names from a dispatch expression.
-fn extract_dispatch_info(
-    expr: &pact_core::ast::expr::Expr,
-) -> Option<(String, Vec<String>)> {
+fn extract_dispatch_info(expr: &pact_core::ast::expr::Expr) -> Option<(String, Vec<String>)> {
     match &expr.kind {
         ExprKind::AgentDispatch { tool, args, .. } => {
             if let ExprKind::ToolRef(name) = &tool.kind {
@@ -400,7 +391,6 @@ fn extract_arg_names(args: &[pact_core::ast::expr::Expr]) -> Vec<String> {
         })
         .collect()
 }
-
 
 // ── Tool/Skill decl → node ─────────────────────────────────────────────────
 
@@ -435,11 +425,10 @@ fn tool_decl_to_node(t: &pact_core::ast::stmt::ToolDecl) -> AgentFlowToolNode {
         .params
         .iter()
         .map(|p| {
-            let ty = p
-                .ty
-                .as_ref()
-                .map(type_expr_to_string)
-                .unwrap_or_else(|| "String".to_string());
+            let ty =
+                p.ty.as_ref()
+                    .map(type_expr_to_string)
+                    .unwrap_or_else(|| "String".to_string());
             (p.name.clone(), ty)
         })
         .collect();
@@ -491,11 +480,10 @@ fn skill_decl_to_node(s: &pact_core::ast::stmt::SkillDecl) -> AgentFlowSkillNode
         .params
         .iter()
         .map(|p| {
-            let ty = p
-                .ty
-                .as_ref()
-                .map(type_expr_to_string)
-                .unwrap_or_else(|| "String".to_string());
+            let ty =
+                p.ty.as_ref()
+                    .map(type_expr_to_string)
+                    .unwrap_or_else(|| "String".to_string());
             (p.name.clone(), ty)
         })
         .collect();
@@ -745,7 +733,9 @@ fn emit_flow_tasks(out: &mut String, flow: &AgentFlowDef, _graph: &AgentFlowGrap
             for arg in fan_in_args {
                 out.push_str(&format!(
                     "    {} -->|\"{}\"| Step{}\n",
-                    prev_step, arg, i + 1
+                    prev_step,
+                    arg,
+                    i + 1
                 ));
             }
         }
@@ -753,7 +743,6 @@ fn emit_flow_tasks(out: &mut String, flow: &AgentFlowDef, _graph: &AgentFlowGrap
 
     out.push('\n');
 }
-
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -986,7 +975,10 @@ mod tests {
             .filter(|e| e.to == "create_report" && e.from != "find_root_cause")
             .collect();
         assert_eq!(skip_edges.len(), 2);
-        let labels: Vec<_> = skip_edges.iter().filter_map(|e| e.label.as_deref()).collect();
+        let labels: Vec<_> = skip_edges
+            .iter()
+            .filter_map(|e| e.label.as_deref())
+            .collect();
         assert!(labels.contains(&"triage"));
         assert!(labels.contains(&"investigation"));
     }
