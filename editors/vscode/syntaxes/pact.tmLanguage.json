@@ -19,6 +19,7 @@
     { "include": "#permission-ref" },
     { "include": "#type-annotation" },
     { "include": "#builtin-type" },
+    { "include": "#builtin-function" },
     { "include": "#operator" },
     { "include": "#identifier" }
   ],
@@ -83,15 +84,15 @@
     },
     "declaration-keyword": {
       "name": "keyword.declaration.pact",
-      "match": "\\b(agent_bundle|agent|tool|flow|schema|type|permit_tree|test|skill|import|template|directive)\\b"
+      "match": "\\b(agent_bundle|agent|tool|flow|schema|type|permit_tree|test|skill|import|template|directive|connect)\\b"
     },
     "control-keyword": {
       "name": "keyword.control.pact",
-      "match": "\\b(return|fail|match|parallel|record|assert|on|if|else)\\b"
+      "match": "\\b(return|fail|match|parallel|record|assert|on_error|on|if|else|run)\\b"
     },
     "block-field": {
       "name": "variable.other.property.pact",
-      "match": "\\b(permits|tools|requires|params|returns|description|handler|prompt|model|agents|fallbacks|strategy|memory|skills|source|output|directives|section)\\s*(?=:|\\s*\\{|\\s*::|\\s+[A-Z])"
+      "match": "\\b(permits|tools|requires|params|returns|description|handler|prompt|model|agents|fallbacks|strategy|memory|skills|source|output|directives|section|retry|validate|cache)\\s*(?=:|\\s*\\{|\\s*::|\\s+[A-Z])"
     },
     "agent-ref": {
       "match": "(@)([a-zA-Z_][a-zA-Z0-9_]*)",
@@ -145,7 +146,13 @@
     },
     "builtin-type": {
       "name": "support.type.pact",
-      "match": "\\b(String|Int|Float|Bool|List|Map|Void|Any|Record)\\b"
+      "match": "\\b(String|Int|Float|Bool|List|Map|Optional|Void|Any|Record)\\b"
+    },
+    "builtin-function": {
+      "match": "\\b(env)\\s*(?=\\()",
+      "captures": {
+        "1": { "name": "support.function.pact" }
+      }
     },
     "operator": {
       "patterns": [

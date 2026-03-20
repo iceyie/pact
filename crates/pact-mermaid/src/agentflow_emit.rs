@@ -4,7 +4,7 @@
 //! PACT `Program` → agentflow text and JSON.
 //!
 //! Converts a parsed PACT program into both agentflow text syntax
-//! and JSON AST representation.
+//! and JSON AST representation, following the Mermaid agentflow spec.
 
 use crate::agentflow::*;
 use pact_core::ast::expr::ExprKind;
@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 /// Convert a PACT `Program` into agentflow text.
 pub fn pact_to_agentflow(program: &Program) -> String {
     let graph = pact_to_agentflow_graph(program);
-    emit_agentflow_text(&graph)
+    emit_agentflow_text(&graph, program)
 }
 
 /// Convert a PACT `Program` into a JSON value.
@@ -234,34 +234,9 @@ pub fn pact_to_agentflow_graph(program: &Program) -> AgentFlowGraph {
 
 /// Extract flow edges from a PACT flow body with proper variable-binding tracking.
 ///
-/// For each `name = @agent -> #tool(arg1, arg2, ...)`, we:
-/// 1. Record that `name` was produced by `#tool`
-/// 2. For each argument, find which tool produced it and create a labeled edge
-///
-/// Extracts flow edges from a flow body, using implicit linear chaining.
-///
-/// Rules:
-/// - Each step emits **one** edge from the previous step, labeled with the
-///   previous step's output variable name.
-/// - At fan-in points (tool consuming multiple prior outputs), additional
-///   labeled edges are emitted only for inputs from **non-immediate**
-///   predecessors (skip edges).
-///
-/// This avoids redundant edges: the linear chain is implicit, only true
-/// fan-in gets extra arrows.
-///
-/// ```pact
-/// triage = @monitor -> #triage_alert(alert)
-/// investigation = @investigator -> #analyze_incident(triage)
-/// root_cause = @investigator -> #root_cause_analysis(investigation)
-/// runbook = @responder -> #generate_runbook(root_cause)
-/// dashboard = @reporter -> #create_report(triage, investigation, root_cause, runbook)
-/// ```
-/// Edges: triage_alert →|triage| analyze_incident →|investigation| root_cause_analysis
-///        →|root_cause| generate_runbook →|runbook| create_report
-///        Plus skip edges: triage_alert →|triage| create_report,
-///        analyze_incident →|investigation| create_report,
-///        root_cause_analysis →|root_cause| create_report
+/// Uses implicit linear chaining: each step emits one edge from the previous
+/// step. At fan-in points, additional labeled edges are emitted only for
+/// inputs from non-immediate predecessors (skip edges).
 fn extract_flow_edges(body: &[pact_core::ast::expr::Expr], edges: &mut Vec<AgentFlowEdge>) {
     use std::collections::HashMap;
 
@@ -326,12 +301,25 @@ fn extract_flow_def(f: &FlowDecl) -> AgentFlowDef {
     let mut steps = Vec::new();
     for expr in &f.body {
         if let ExprKind::Assign { name, value } = &expr.kind {
+            // Check for dispatch: name = @agent -> #tool(args)
             if let Some((agent_name, tool_name, args)) = extract_full_dispatch_info(value) {
                 steps.push(AgentFlowStep {
                     output_var: name.clone(),
                     agent: agent_name,
                     tool: tool_name,
                     args,
+                });
+            }
+            // Check for flow call: name = run other_flow(args)
+            else if let ExprKind::RunFlow {
+                flow_name, args, ..
+            } = &value.kind
+            {
+                steps.push(AgentFlowStep {
+                    output_var: name.clone(),
+                    agent: format!("flow:{}", flow_name),
+                    tool: flow_name.clone(),
+                    args: extract_arg_names(args),
                 });
             }
         }
@@ -506,98 +494,11 @@ fn skill_decl_to_node(s: &pact_core::ast::stmt::SkillDecl) -> AgentFlowSkillNode
 
 // ── Text emitter ───────────────────────────────────────────────────────────
 
-fn emit_agentflow_text(graph: &AgentFlowGraph) -> String {
+fn emit_agentflow_text(graph: &AgentFlowGraph, program: &Program) -> String {
     let mut out = String::new();
     out.push_str(&format!("agentflow {}\n", graph.direction));
 
-    // ── Types: schemas as Record types ─────────────────────────────────────
-    if !graph.schemas.is_empty() || !graph.type_aliases.is_empty() {
-        for schema in &graph.schemas {
-            out.push_str(&format!("  type {} = Record {{\n", schema.id));
-            for (name, ty) in &schema.metadata.fields {
-                out.push_str(&format!("    {}: {}\n", name, ty));
-            }
-            out.push_str("  }\n\n");
-        }
-
-        for ta in &graph.type_aliases {
-            out.push_str(&format!(
-                "  type {} = {}\n",
-                ta.name,
-                ta.variants.join(" | ")
-            ));
-        }
-        out.push('\n');
-    }
-
-    // ── Templates (TBD: Mermaid syntax pending) ─────────────────────────────
-    for tpl in &graph.templates {
-        out.push_str(&format!(
-            "  %% template {}: {}\n",
-            tpl.id,
-            tpl.metadata
-                .fields
-                .keys()
-                .cloned()
-                .collect::<Vec<_>>()
-                .join(", ")
-        ));
-    }
-    if !graph.templates.is_empty() {
-        out.push('\n');
-    }
-
-    // ── Directives (TBD: Mermaid syntax pending) ──────────────────────────
-    for dir in &graph.directives {
-        out.push_str(&format!("  %% directive {}\n", dir.id));
-    }
-    if !graph.directives.is_empty() {
-        out.push('\n');
-    }
-
-    // ── Tools: flat top-level definitions ──────────────────────────────────
-    for agent in &graph.agents {
-        for tool in &agent.nodes {
-            out.push_str(&format!("  {}@{{\n", tool.id));
-            out.push_str("    toolDefinition: true\n");
-            out.push_str("    shape: subroutine\n");
-            out.push_str(&format!(
-                "    description: \"{}\"\n",
-                tool.metadata.description.replace('"', "\\\"")
-            ));
-            if !tool.metadata.requires.is_empty() {
-                let perms: Vec<String> = tool
-                    .metadata
-                    .requires
-                    .iter()
-                    .map(|r| r.strip_prefix('^').unwrap_or(r).to_string())
-                    .collect();
-                out.push_str(&format!("    requires: \"{}\"\n", perms.join(", ")));
-            }
-            if let Some(output) = &tool.metadata.output {
-                out.push_str(&format!("    output: \"{}\"\n", output));
-            }
-            if !tool.metadata.directives.is_empty() {
-                out.push_str(&format!(
-                    "    directives: \"{}\"\n",
-                    tool.metadata.directives.join(", ")
-                ));
-            }
-            if !tool.metadata.params.is_empty() {
-                out.push_str("    params:\n");
-                for (name, ty) in &tool.metadata.params {
-                    out.push_str(&format!("      {}: {}\n", name, ty));
-                }
-            }
-            if let Some(returns) = &tool.metadata.returns {
-                out.push_str(&format!("    returns: \"{}\"\n", returns));
-            }
-            out.push_str("  }\n\n");
-        }
-    }
-
-    // ── Agents: grouped under agent bundle or standalone ───────────────────
-    // Emit bundles first — agents inside bundles.
+    // ── Agent container (from bundles) ─────────────────────────────────────
     let bundled_agents: Vec<&str> = graph
         .bundles
         .iter()
@@ -606,7 +507,7 @@ fn emit_agentflow_text(graph: &AgentFlowGraph) -> String {
 
     for bundle in &graph.bundles {
         out.push_str(&format!(
-            "  agent {}[\"{}\"]\n",
+            "\nagent {}[\"{}\"]\n",
             bundle.id,
             to_title_case(&bundle.id)
         ));
@@ -617,25 +518,63 @@ fn emit_agentflow_text(graph: &AgentFlowGraph) -> String {
             }
         }
 
-        out.push_str("  end\n\n");
+        out.push_str("  end\n");
+        out.push_str(&format!("  {}@{{\n    view: collapsed\n  }}\n", bundle.id));
     }
 
-    // Emit unbundled agents.
+    // Emit unbundled agents as standalone definitions.
     for agent in &graph.agents {
         if !bundled_agents.contains(&agent.id.as_str()) {
             emit_agent_definition(&mut out, agent);
         }
     }
 
-    // ── Flows: task-based blocks ──────────────────────────────────────────
-    for flow in &graph.flows {
-        emit_flow_tasks(&mut out, flow, graph);
+    out.push('\n');
+
+    // ── Types: schemas as Record types ─────────────────────────────────────
+    for schema in &graph.schemas {
+        out.push_str(&format!("type {} = Record {{\n", schema.id));
+        for (name, ty) in &schema.metadata.fields {
+            out.push_str(&format!("    {}: {}\n", name, ty));
+        }
+        out.push_str("  }\n\n");
     }
+
+    for ta in &graph.type_aliases {
+        out.push_str(&format!(
+            "  type {} = {}\n",
+            ta.name,
+            ta.variants.join(" | ")
+        ));
+    }
+    if !graph.type_aliases.is_empty() {
+        out.push('\n');
+    }
+
+    // ── Flows: detailed task blocks ─────────────────────────────────────
+    // Find the "main" flow (longest, or last) to emit as a pipeline,
+    // and other flows as detailed sub-flows.
+    let pipeline_flow = graph
+        .flows
+        .iter()
+        .find(|f| f.steps.iter().any(|s| s.agent.starts_with("flow:")));
+
+    for flow in &graph.flows {
+        let is_pipeline = pipeline_flow.is_some_and(|pf| pf.name == flow.name);
+        if is_pipeline {
+            emit_pipeline_tasks(&mut out, flow, graph);
+        } else {
+            emit_flow_tasks(&mut out, flow, graph);
+        }
+    }
+
+    // ── Templates ─────────────────────────────────────────────────────
+    emit_templates(&mut out, program);
 
     out
 }
 
-/// Emit an agent definition in the new `@{ agentDefinition: true }` format.
+/// Emit an agent definition in the `@{ agentDefinition: true }` format.
 fn emit_agent_definition(out: &mut String, agent: &AgentFlowAgent) {
     out.push_str(&format!("\n    {}@{{\n", agent.id));
     out.push_str("      agentDefinition: true\n");
@@ -673,11 +612,25 @@ fn emit_agent_definition(out: &mut String, agent: &AgentFlowAgent) {
     out.push_str("    }\n");
 }
 
-/// Emit flow definitions as task blocks with agent/tool/output triplets.
+/// Emit a flow as detailed task blocks (agent → tool → output triplets).
+///
+/// Each task has the structure:
+/// ```text
+/// task StepN
+///   direction TB
+///   agentRef{{agent}}@{ agent: name } --- tool@{ shape: subroutine }
+///   agentRef --o output_var@{ shape: doc }
+/// end
+/// ```
 fn emit_flow_tasks(out: &mut String, flow: &AgentFlowDef, _graph: &AgentFlowGraph) {
     use std::collections::HashMap;
 
-    out.push_str(&format!("  flow {}\n", flow.name));
+    out.push_str(&format!(
+        "\nflow {}[\"{}\"]\n",
+        flow.name,
+        to_title_case(&flow.name)
+    ));
+    out.push_str("      direction TB\n");
 
     // Build var->step index for fan-in detection.
     let mut var_to_step: HashMap<String, usize> = HashMap::new();
@@ -688,51 +641,62 @@ fn emit_flow_tasks(out: &mut String, flow: &AgentFlowDef, _graph: &AgentFlowGrap
     // Emit each step as a task block.
     for (i, step) in flow.steps.iter().enumerate() {
         let step_label = format!("Step{}", i + 1);
-        out.push_str(&format!("    task {}\n", step_label));
-        out.push_str("      direction TB\n");
+        let agent_ref = make_agent_ref(&step.agent);
+        out.push_str(&format!("      task {}\n", step_label));
+        out.push_str("        direction TB\n");
         out.push_str(&format!(
-            "      a_{}{{{{{}}}}}@{{ agent: {} }} --- {}@{{ shape: subroutine }}\n",
-            step.agent, step.agent, step.agent, step.tool
+            "         {}{{{{{}}}}}@{{ agent: {} }} --- {}@{{ shape: subroutine }}\n",
+            agent_ref, step.agent, step.agent, step.tool
         ));
         out.push_str(&format!(
-            "      a_{} --o {}@{{ shape: doc }}\n",
-            step.agent, step.output_var
+            "        {} --o {}@{{ shape: doc}}\n",
+            agent_ref, step.output_var
         ));
-        out.push_str("    end\n\n");
+        out.push_str("      end\n\n");
     }
 
     // Emit linear chain edges between steps.
-    for i in 0..flow.steps.len().saturating_sub(1) {
-        let label = &flow.steps[i].output_var;
+    let dispatch_steps: Vec<(usize, &AgentFlowStep)> = flow
+        .steps
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| !s.agent.starts_with("flow:"))
+        .collect();
+
+    for i in 0..dispatch_steps.len().saturating_sub(1) {
+        let (idx, step) = dispatch_steps[i];
+        let (next_idx, _) = dispatch_steps[i + 1];
         out.push_str(&format!(
             "    Step{} -->|\"{}\"| Step{}\n",
-            i + 1,
-            label,
-            i + 2
+            idx + 1,
+            step.output_var,
+            next_idx + 1
         ));
     }
 
-    // Emit fan-in edges: find steps that consume non-immediate-predecessor variables.
+    // Emit fan-in edges: all inputs to a step from the immediate predecessor.
+    // Mermaid team's model: fan-in data flows from the step just before the
+    // consumer, with each input labeled separately.
     for (i, step) in flow.steps.iter().enumerate() {
-        let mut fan_in_args: Vec<&String> = Vec::new();
-        for arg in &step.args {
-            if let Some(&src_idx) = var_to_step.get(arg) {
-                // Skip if it's the immediate predecessor (already covered by linear chain).
-                if i > 0 && src_idx == i - 1 {
-                    continue;
+        let fan_in_args: Vec<&String> = step
+            .args
+            .iter()
+            .filter(|arg| {
+                if let Some(&src_idx) = var_to_step.get(*arg) {
+                    // Skip the immediate predecessor — already covered by linear chain.
+                    i > 0 && src_idx != i - 1
+                } else {
+                    false
                 }
-                // Skip if it's a flow parameter (not produced by any step).
-                fan_in_args.push(arg);
-            }
-        }
+            })
+            .collect();
 
         if !fan_in_args.is_empty() {
             out.push_str(&format!("\n    %% Fan-in for Step{}\n", i + 1));
-            // The immediate predecessor step carries all fan-in data.
-            let prev_step = format!("Step{}", i);
-            for arg in fan_in_args {
+            let prev_step = if i > 0 { i } else { 1 };
+            for arg in &fan_in_args {
                 out.push_str(&format!(
-                    "    {} -->|\"{}\"| Step{}\n",
+                    "    Step{} -->|\"{}\"| Step{}\n",
                     prev_step,
                     arg,
                     i + 1
@@ -742,6 +706,112 @@ fn emit_flow_tasks(out: &mut String, flow: &AgentFlowDef, _graph: &AgentFlowGrap
     }
 
     out.push('\n');
+}
+
+/// Emit a pipeline flow that references sub-flows.
+///
+/// Pipeline steps use `shape: procs` with `src` for sub-flow references,
+/// and `shape: hex` with `agent` for agent references.
+fn emit_pipeline_tasks(out: &mut String, flow: &AgentFlowDef, _graph: &AgentFlowGraph) {
+    out.push('\n');
+
+    for (i, step) in flow.steps.iter().enumerate() {
+        let step_label = format!("PStep{}", i + 1);
+        let display = format!("Pipeline step {}", i + 1);
+        out.push_str(&format!("    task {}[\"{}\"]\n", step_label, display));
+
+        if step.agent.starts_with("flow:") {
+            // Sub-flow reference
+            let flow_name = step.agent.strip_prefix("flow:").unwrap();
+            out.push_str(&format!(
+                "        {}[\"flow {}\"]@{{ shape: procs, src: \"./{}.mmd\"}}\n",
+                step.tool, flow_name, flow_name
+            ));
+            out.push_str(&format!(
+                "        {} --o {}@{{ shape: doc}}\n",
+                step.tool, step.output_var
+            ));
+        } else {
+            // Regular dispatch step
+            let agent_ref = format!("s{}", i + 1);
+            out.push_str(&format!(
+                "        {}[\"@{}\"]@{{ shape: hex, agent: {} }} --- {}@{{ shape: subroutine }}\n",
+                agent_ref, step.agent, step.agent, step.tool
+            ));
+            out.push_str(&format!(
+                "        {} --o {}@{{ shape: doc}}\n",
+                agent_ref, step.output_var
+            ));
+        }
+
+        out.push_str("    end\n\n");
+    }
+
+    // Linear chain for pipeline steps.
+    if flow.steps.len() > 1 {
+        let labels: Vec<String> = (1..=flow.steps.len())
+            .map(|i| format!("PStep{}", i))
+            .collect();
+        out.push_str(&format!("    {}\n", labels.join(" --> ")));
+    }
+
+    // Collapse sub-flow references.
+    for step in &flow.steps {
+        if step.agent.starts_with("flow:") {
+            out.push_str(&format!(
+                "    {}@{{\n      view: collapsed\n    }}\n",
+                step.tool
+            ));
+        }
+    }
+}
+
+/// Emit template blocks with field descriptions from the original program AST.
+fn emit_templates(out: &mut String, program: &Program) {
+    for decl in &program.decls {
+        if let DeclKind::Template(t) = &decl.kind {
+            out.push_str(&format!("\ntemplate %{} {{\n", t.name));
+            for entry in &t.entries {
+                match entry {
+                    TemplateEntry::Field {
+                        name,
+                        ty,
+                        description,
+                    } => {
+                        let ty_str = type_expr_to_string(ty);
+                        if let Some(desc) = description {
+                            out.push_str(&format!(
+                                "    {}: {}           <<{}>>\n",
+                                name, ty_str, desc
+                            ));
+                        } else {
+                            out.push_str(&format!("    {}: {}\n", name, ty_str));
+                        }
+                    }
+                    TemplateEntry::Repeat {
+                        name,
+                        ty,
+                        count,
+                        description,
+                    } => {
+                        let ty_str = type_expr_to_string(ty);
+                        if let Some(desc) = description {
+                            out.push_str(&format!(
+                                "    {}: {} * {}           <<{}>>\n",
+                                name, ty_str, count, desc
+                            ));
+                        } else {
+                            out.push_str(&format!("    {}: {} * {}\n", name, ty_str, count));
+                        }
+                    }
+                    TemplateEntry::Section { name, .. } => {
+                        out.push_str(&format!("    section {}\n", name));
+                    }
+                }
+            }
+            out.push_str("  }\n");
+        }
+    }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -770,6 +840,21 @@ fn to_title_case(s: &str) -> String {
         })
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+/// Generate a camelCase agent reference name for use in task blocks.
+/// e.g. "monitor" → "aMonitor", "investigator" → "anInvestigator"
+fn make_agent_ref(name: &str) -> String {
+    let first = name.chars().next().unwrap_or('a');
+    let prefix = if "aeiou".contains(first) { "an" } else { "a" };
+    let capitalized = {
+        let mut chars = name.chars();
+        match chars.next() {
+            Some(c) => c.to_uppercase().to_string() + chars.as_str(),
+            None => String::new(),
+        }
+    };
+    format!("{}{}", prefix, capitalized)
 }
 
 #[cfg(test)]
@@ -803,11 +888,32 @@ mod tests {
         let program = parse_program(src);
         let text = pact_to_agentflow(&program);
         assert!(text.starts_with("agentflow LR\n"));
-        assert!(text.contains("search@{"));
-        assert!(text.contains("toolDefinition: true"));
         assert!(text.contains("researcher@{"));
         assert!(text.contains("agentDefinition: true"));
         assert!(text.contains("shape: hex"));
+    }
+
+    #[test]
+    fn agent_bundle_wraps_agents() {
+        let src = r#"
+            tool #search {
+                description: <<Search>>
+                requires: [^net.read]
+                params { q :: String }
+                returns :: String
+            }
+            agent @a { permits: [^net.read] tools: [#search] }
+            agent @b { permits: [] tools: [] }
+            agent_bundle @team {
+                agents: [@a, @b]
+            }
+        "#;
+        let program = parse_program(src);
+        let text = pact_to_agentflow(&program);
+        assert!(text.contains("agent team[\"Team\"]"));
+        assert!(text.contains("a@{"));
+        assert!(text.contains("b@{"));
+        assert!(text.contains("view: collapsed"));
     }
 
     #[test]
@@ -821,48 +927,22 @@ mod tests {
     }
 
     #[test]
-    fn template_to_agentflow() {
+    fn template_as_first_class_block() {
         let src = r#"
             template %website_copy {
-                HERO_TAGLINE :: String
-                MENU_ITEM :: String * 6
+                HERO_TAGLINE :: String <<main tagline>>
+                MENU_ITEM :: String * 6 <<navigation items>>
                 section ENGLISH
             }
         "#;
         let program = parse_program(src);
         let text = pact_to_agentflow(&program);
-        assert!(text.contains("%% template website_copy: HERO_TAGLINE"));
-    }
-
-    #[test]
-    fn directive_to_agentflow() {
-        let src = r#"
-            directive %scandinavian_design {
-                <<Use Google Fonts for headings>>
-                params {
-                    heading_font :: String = <<Playfair Display>>
-                }
-            }
-        "#;
-        let program = parse_program(src);
-        let text = pact_to_agentflow(&program);
-        assert!(text.contains("%% directive scandinavian_design"));
-    }
-
-    #[test]
-    fn bundle_to_agentflow() {
-        let src = r#"
-            agent @a { permits: [] tools: [] }
-            agent @b { permits: [] tools: [] }
-            agent_bundle @team {
-                agents: [@a, @b]
-            }
-        "#;
-        let program = parse_program(src);
-        let graph = pact_to_agentflow_graph(&program);
-        assert_eq!(graph.bundles.len(), 1);
-        assert_eq!(graph.bundles[0].id, "team");
-        assert_eq!(graph.bundles[0].agents, vec!["a", "b"]);
+        assert!(text.contains("template %website_copy {"));
+        assert!(text.contains("HERO_TAGLINE: String"));
+        assert!(text.contains("<<main tagline>>"));
+        assert!(text.contains("MENU_ITEM: String * 6"));
+        assert!(text.contains("<<navigation items>>"));
+        assert!(text.contains("section ENGLISH"));
     }
 
     #[test]
@@ -952,8 +1032,8 @@ mod tests {
             .filter(|e| e.edge_type == EdgeType::Flow)
             .collect();
 
-        // Linear chain (implicit): triage->investigate, investigate->find_root_cause,
-        //   find_root_cause->create_report (labeled "root_cause", immediate predecessor)
+        // Linear chain: triage->investigate, investigate->find_root_cause,
+        //   find_root_cause->create_report (labeled "root_cause")
         // Skip edges (fan-in): triage->create_report, investigate->create_report
         assert_eq!(flow_edges.len(), 5);
 
@@ -981,6 +1061,42 @@ mod tests {
             .collect();
         assert!(labels.contains(&"triage"));
         assert!(labels.contains(&"investigation"));
+    }
+
+    #[test]
+    fn flow_task_blocks_emitted() {
+        let src = r#"
+            tool #search {
+                description: <<Search>>
+                requires: [^net.read]
+                params { q :: String }
+                returns :: String
+            }
+            tool #summarize {
+                description: <<Summarize>>
+                requires: [^llm.query]
+                params { content :: String }
+                returns :: String
+            }
+            agent @researcher {
+                permits: [^net.read, ^llm.query]
+                tools: [#search, #summarize]
+            }
+            flow research(topic :: String) -> String {
+                results = @researcher -> #search(topic)
+                summary = @researcher -> #summarize(results)
+                return summary
+            }
+        "#;
+        let program = parse_program(src);
+        let text = pact_to_agentflow(&program);
+        assert!(text.contains("flow research[\"Research\"]"));
+        assert!(text.contains("task Step1"));
+        assert!(text.contains("task Step2"));
+        assert!(text.contains("aResearcher{{researcher}}@{ agent: researcher }"));
+        assert!(text.contains("search@{ shape: subroutine }"));
+        assert!(text.contains("results@{ shape: doc}"));
+        assert!(text.contains("Step1 -->|\"results\"| Step2"));
     }
 
     #[test]
@@ -1034,5 +1150,12 @@ mod tests {
         assert_eq!(json["direction"], "LR");
         assert!(json["agents"].is_array());
         assert_eq!(json["agents"][0]["id"], "researcher");
+    }
+
+    #[test]
+    fn make_agent_ref_vowel_prefix() {
+        assert_eq!(make_agent_ref("investigator"), "anInvestigator");
+        assert_eq!(make_agent_ref("monitor"), "aMonitor");
+        assert_eq!(make_agent_ref("reporter"), "aReporter");
     }
 }
